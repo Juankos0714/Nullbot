@@ -1,0 +1,71 @@
+# ─── Build output ─────────────────────────────────────────────────────────────
+build/
+out/
+cmake-build-*/
+*.lib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+
+# ─── CMake ────────────────────────────────────────────────────────────────────
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+_deps/
+
+# ─── MSVC / Visual Studio ─────────────────────────────────────────────────────
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.aps
+*.ncb
+*.opensdf
+*.sdf
+.vs/
+ipch/
+x64/
+x86/
+Debug/
+Release/
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+.eggs/
+
+# ─── SQLite ───────────────────────────────────────────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+
+# ─── NullBot runtime data ─────────────────────────────────────────────────────
+signatures/updater/*.log
+compiled_test.yarc
+test_eicar.com
+
+# ─── OS / editor noise ────────────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*.swo
+*~
+
+# ─── IDE ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
+
+# ─── Claude Code ──────────────────────────────────────────────────────────────
+.claude/

@@ -59,10 +59,10 @@ jobs:
           }
 
       - name: Test against EICAR
+        shell: bash
         run: |
-          # Create EICAR test file (harmless standard antivirus test)
-          $eicar = 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
-          Set-Content -Path test_eicar.com -Value $eicar -NoNewline
+          eicar='X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
+          printf '%s' "$eicar" > test_eicar.com
           yara -r signatures/rules/ test_eicar.com || true
 
   test-updater:

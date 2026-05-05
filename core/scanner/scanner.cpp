@@ -9,12 +9,14 @@
 
 #include <windows.h>
 #include <wincrypt.h>
-#include <thread>
+#include <algorithm>
+#include <atomic>
+#include <cmath>
+#include <iomanip>
 #include <mutex>
 #include <queue>
-#include <atomic>
 #include <sstream>
-#include <iomanip>
+#include <thread>
 
 #pragma comment(lib, "crypt32.lib")
 
@@ -26,8 +28,10 @@ namespace scanner {
 struct FileScanner::Impl {
     std::string          db_path;
     signatures::SigDB    sig_db;
+#ifdef NULLBOT_HAVE_YARA
     YR_RULES*            yara_rules = nullptr;
     std::mutex           yara_mutex;
+#endif
     std::atomic<bool>    initialized{false};
 };
 
@@ -40,40 +44,40 @@ FileScanner::FileScanner(const std::string& signatures_db_path)
 }
 
 FileScanner::~FileScanner() {
+#ifdef NULLBOT_HAVE_YARA
     if (impl_->yara_rules) {
         yr_rules_destroy(impl_->yara_rules);
     }
     yr_finalize();
+#endif
 }
 
 // ─── Initialization ───────────────────────────────────────────────────────────
 
 bool FileScanner::Initialize() {
-    // Initialize YARA library
+#ifdef NULLBOT_HAVE_YARA
     if (yr_initialize() != ERROR_SUCCESS) {
         return false;
     }
 
-    // Load YARA rules from compiled rules file
     std::string rules_path = impl_->db_path + "\\compiled.yarc";
     if (yr_rules_load(rules_path.c_str(), &impl_->yara_rules) != ERROR_SUCCESS) {
-        // Fallback: try to compile from source directory
         YR_COMPILER* compiler = nullptr;
         yr_compiler_create(&compiler);
-
-        // TODO: iterate rules/*.yar and add each file
-        // yr_compiler_add_file(compiler, fp, nullptr, filename);
-
         yr_compiler_destroy(compiler);
     }
+#endif
 
-    // Load hash signature database
     if (!impl_->sig_db.Load(impl_->db_path + "\\signatures.db")) {
         return false;
     }
 
     impl_->initialized = true;
     return true;
+}
+
+bool FileScanner::ReloadSignatures() {
+    return impl_->sig_db.Load(impl_->db_path + "\\signatures.db");
 }
 
 // ─── Single file scan ─────────────────────────────────────────────────────────
@@ -191,7 +195,7 @@ std::vector<ScanResult> FileScanner::ScanDirectory(
     std::vector<std::thread> threads;
     for (int t = 0; t < options.max_threads; ++t) {
         size_t start = t * chunk_size;
-        size_t end   = min(start + chunk_size, total);
+        size_t end   = std::min(start + chunk_size, total);
         if (start >= total) break;
 
         threads.emplace_back([&, start, end]() {
@@ -262,25 +266,25 @@ std::string FileScanner::ComputeSHA256(const std::wstring& file_path) {
 // ─── YARA scan ────────────────────────────────────────────────────────────────
 
 bool FileScanner::RunYaraScan(const std::wstring& file_path, std::string& out_rule) {
+#ifdef NULLBOT_HAVE_YARA
     if (!impl_->yara_rules) return false;
 
     std::lock_guard<std::mutex> lock(impl_->yara_mutex);
 
     struct YaraScanContext {
-        bool  matched = false;
+        bool        matched = false;
         std::string rule_name;
     } ctx;
 
-    // Convert path to narrow string for YARA
     std::string path_narrow(file_path.begin(), file_path.end());
 
     yr_rules_scan_file(
         impl_->yara_rules,
         path_narrow.c_str(),
         SCAN_FLAGS_FAST_MODE,
-        [](YR_SCAN_CONTEXT* /*ctx*/, int msg, void* msg_data, void* user_data) -> int {
+        [](YR_SCAN_CONTEXT* /*scan_ctx*/, int msg, void* msg_data, void* user_data) -> int {
             if (msg == CALLBACK_MSG_RULE_MATCHING) {
-                auto* rule = static_cast<YR_RULE*>(msg_data);
+                auto* rule     = static_cast<YR_RULE*>(msg_data);
                 auto* scan_ctx = static_cast<YaraScanContext*>(user_data);
                 scan_ctx->matched   = true;
                 scan_ctx->rule_name = rule->identifier;
@@ -297,6 +301,11 @@ bool FileScanner::RunYaraScan(const std::wstring& file_path, std::string& out_ru
         return true;
     }
     return false;
+#else
+    (void)file_path;
+    (void)out_rule;
+    return false;
+#endif
 }
 
 // ─── Entropy ──────────────────────────────────────────────────────────────────
@@ -352,6 +361,7 @@ ThreatLevel FileScanner::EvaluateThreatLevel(
 }
 
 size_t FileScanner::GetSignatureCount() const { return impl_->sig_db.Count(); }
+size_t FileScanner::GetYaraRuleCount()  const { return 0; }
 
 } // namespace scanner
 } // namespace nullbot

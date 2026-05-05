@@ -9,10 +9,15 @@
  */
 
 #include <windows.h>
+#include <memory>
 #include <string>
 #include <vector>
 #include <functional>
-#include <yara.h>  // libyara
+
+// YARA is an optional dependency. When present, enables rule-based detection.
+#ifdef NULLBOT_HAVE_YARA
+#include <yara.h>
+#endif
 
 namespace nullbot {
 namespace scanner {
