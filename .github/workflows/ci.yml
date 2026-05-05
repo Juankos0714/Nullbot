@@ -39,30 +39,24 @@ jobs:
 
   test-signatures:
     name: Validate YARA Rules
-    runs-on: windows-2022
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install yara
-        run: choco install yara -y
+        run: sudo apt-get update -qq && sudo apt-get install -y yara
 
       - name: Validate YARA rules syntax
         run: |
-          Get-ChildItem signatures/rules/*.yar | ForEach-Object {
-            Write-Host "Checking $($_.Name)..."
-            yarac $_.FullName compiled_test.yarc
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "YARA rule $($_.Name) has syntax errors"
-              exit 1
-            }
-          }
+          for f in signatures/rules/*.yar; do
+            echo "Checking $(basename "$f")..."
+            yarac "$f" /tmp/compiled_test.yarc
+          done
 
       - name: Test against EICAR
-        shell: bash
         run: |
-          eicar='X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
-          printf '%s' "$eicar" > test_eicar.com
+          printf '%s' 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > test_eicar.com
           yara -r signatures/rules/ test_eicar.com || true
 
   test-updater:
