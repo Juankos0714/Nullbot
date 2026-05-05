@@ -52,6 +52,8 @@ target_link_libraries(nullbot_core
         ws2_32
         advapi32
         shlwapi
+        ole32
+        bcrypt
 )
 
 if(yara_FOUND)
