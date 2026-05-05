@@ -111,7 +111,7 @@ private:
     double      ComputeFileEntropy(const std::wstring& file_path);
     bool        IsHighEntropy(double entropy);
 
-    static constexpr double ENTROPY_THRESHOLD = 7.2;
+    // Threshold value lives in core/heuristic/thresholds.h
 };
 
 } // namespace scanner

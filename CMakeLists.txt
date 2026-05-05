@@ -142,6 +142,9 @@ target_link_libraries(nullbot_tests
 )
 
 add_test(NAME UnitTests COMMAND nullbot_tests)
+set_tests_properties(UnitTests PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+)
 
 # ─── Install ──────────────────────────────────────────────────────────────────
 install(TARGETS nullbot_cli

@@ -5,6 +5,7 @@
 
 #include "scanner.h"
 #include "../heuristic/pe_analyzer.h"
+#include "../heuristic/thresholds.h"
 #include "../../signatures/sig_database.h"
 
 #include <windows.h>
@@ -82,9 +83,7 @@ FileScanner::FileScanner(const std::string& signatures_db_path)
 
 FileScanner::~FileScanner() {
 #ifdef NULLBOT_HAVE_YARA
-    if (impl_->yara_rules) {
-        yr_rules_destroy(impl_->yara_rules);
-    }
+    if (impl_->yara_rules) yr_rules_destroy(impl_->yara_rules);
     yr_finalize();
 #endif
 }
@@ -104,10 +103,7 @@ bool FileScanner::Initialize() {
     }
 #endif
 
-    if (!impl_->sig_db.Load(impl_->db_path + "\\signatures.db")) {
-        return false;
-    }
-
+    if (!impl_->sig_db.Load(impl_->db_path + "\\signatures.db")) return false;
     impl_->initialized = true;
     return true;
 }
@@ -137,15 +133,14 @@ bool FileScanner::ReloadSignatures() {
 
 ScanResult FileScanner::ScanFile(const std::wstring& file_path) {
     ScanResult result;
-    result.file_path = file_path;
-    result.level     = ThreatLevel::CLEAN;
+    result.file_path   = file_path;
+    result.level       = ThreatLevel::CLEAN;
     result.quarantined = false;
     GetSystemTimeAsFileTime(&result.scan_time);
 
-    // 1. Compute hash and check against database
+    // 1. Hash check
     result.sha256 = ComputeSHA256(file_path);
     std::string threat_name;
-
     if (MatchesHashDatabase(result.sha256, threat_name)) {
         result.threat_name    = threat_name;
         result.detection_type = "SIGNATURE";
@@ -153,7 +148,7 @@ ScanResult FileScanner::ScanFile(const std::wstring& file_path) {
         return result;
     }
 
-    // 2. YARA scan
+    // 2. YARA rule scan
     std::string yara_rule;
     if (RunYaraScan(file_path, yara_rule)) {
         result.threat_name    = yara_rule;
@@ -162,27 +157,49 @@ ScanResult FileScanner::ScanFile(const std::wstring& file_path) {
         return result;
     }
 
-    // 3. Heuristic: entropy check
-    double entropy = ComputeFileEntropy(file_path);
-    if (IsHighEntropy(entropy)) {
-        result.threat_name    = "Heuristic.HighEntropy.Packed";
-        result.detection_type = "HEURISTIC";
-        result.level          = ThreatLevel::SUSPICIOUS;
-    }
-
-    // 4. Heuristic: PE analysis
+    // 3. Heuristic analysis — branch on whether the file is a PE
     heuristic::PEAnalyzer pe(file_path);
-    if (pe.IsExecutable()) {
-        auto suspicious_imports = pe.GetSuspiciousImports();
-        if (!suspicious_imports.empty()) {
+    const auto pe_info = pe.Analyze();
+
+    if (pe_info.is_pe) {
+        // 3a. Known packer signatures (section name pattern matching)
+        const std::string packer = pe.IsPackerSignature();
+        if (!packer.empty()) {
+            result.threat_name    = "Heuristic.Packer." + packer;
+            result.detection_type = "HEURISTIC";
+            result.level          = ThreatLevel::SUSPICIOUS;
+        }
+
+        // 3b. Per-section entropy (packed sections have high entropy)
+        for (const auto& se : pe.GetSectionEntropies()) {
+            if (se.is_suspicious) {
+                result.threat_name    = "Heuristic.HighEntropy.Section." + se.section_name;
+                result.detection_type = "HEURISTIC";
+                result.level          = ThreatLevel::SUSPICIOUS;
+                break;
+            }
+        }
+
+        // 3c. Suspicious import cluster — only alert above threshold
+        if (static_cast<int>(pe_info.suspicious_imports.size())
+                >= heuristic::thresholds::MIN_SUSPICIOUS_IMPORTS) {
             result.threat_name    = "Heuristic.PE.SuspiciousImports";
             result.detection_type = "HEURISTIC";
             result.level          = ThreatLevel::SUSPICIOUS;
         }
 
+        // 3d. Anti-debug cluster (escalates severity)
         if (pe.HasAntiDebugTechniques()) {
-            result.level = ThreatLevel::MALICIOUS;
-            result.threat_name = "Heuristic.PE.AntiDebug";
+            result.threat_name    = "Heuristic.PE.AntiDebug";
+            result.detection_type = "HEURISTIC";
+            result.level          = ThreatLevel::MALICIOUS;
+        }
+    } else {
+        // Non-PE fallback: whole-file entropy check
+        if (IsHighEntropy(ComputeFileEntropy(file_path))) {
+            result.threat_name    = "Heuristic.HighEntropy.Packed";
+            result.detection_type = "HEURISTIC";
+            result.level          = ThreatLevel::SUSPICIOUS;
         }
     }
 
@@ -197,7 +214,6 @@ std::vector<ScanResult> FileScanner::ScanDirectory(
     ScanProgressCallback on_progress,
     ThreatFoundCallback  on_threat)
 {
-    // 1. Enumerate all files first
     std::vector<std::wstring> files;
     std::queue<std::wstring>  dirs_to_scan;
     dirs_to_scan.push(directory_path);
@@ -208,7 +224,6 @@ std::vector<ScanResult> FileScanner::ScanDirectory(
 
         WIN32_FIND_DATAW find_data;
         HANDLE hFind = FindFirstFileW((current_dir + L"\\*").c_str(), &find_data);
-
         if (hFind == INVALID_HANDLE_VALUE) continue;
 
         do {
@@ -216,14 +231,12 @@ std::vector<ScanResult> FileScanner::ScanDirectory(
             if (name == L"." || name == L"..") continue;
 
             std::wstring full_path = current_dir + L"\\" + name;
-
             if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
                 if (options.recursive) {
                     bool excluded = false;
                     for (const auto& ex : options.excluded_paths) {
                         if (full_path.find(ex) != std::wstring::npos) {
-                            excluded = true;
-                            break;
+                            excluded = true; break;
                         }
                     }
                     if (!excluded) dirs_to_scan.push(full_path);
@@ -236,12 +249,11 @@ std::vector<ScanResult> FileScanner::ScanDirectory(
         FindClose(hFind);
     }
 
-    // 2. Parallel scan using thread pool
     std::vector<ScanResult> results;
     std::mutex results_mutex;
     std::atomic<size_t> scanned_count{0};
 
-    size_t total = files.size();
+    size_t total      = files.size();
     size_t chunk_size = (total + options.max_threads - 1) / options.max_threads;
 
     std::vector<std::thread> threads;
@@ -252,9 +264,8 @@ std::vector<ScanResult> FileScanner::ScanDirectory(
 
         threads.emplace_back([&, start, end]() {
             for (size_t i = start; i < end; ++i) {
-                ScanResult r = ScanFile(files[i]);
-
-                size_t count = ++scanned_count;
+                ScanResult r   = ScanFile(files[i]);
+                size_t   count = ++scanned_count;
                 if (on_progress) on_progress(files[i], count, total);
 
                 if (r.level >= ThreatLevel::SUSPICIOUS) {
@@ -277,31 +288,23 @@ std::string FileScanner::ComputeSHA256(const std::wstring& file_path) {
     HCRYPTHASH hHash = 0;
     std::string result;
 
-    HANDLE hFile = CreateFileW(
-        file_path.c_str(), GENERIC_READ, FILE_SHARE_READ,
-        nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr
-    );
+    HANDLE hFile = CreateFileW(file_path.c_str(), GENERIC_READ, FILE_SHARE_READ,
+                               nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
     if (hFile == INVALID_HANDLE_VALUE) return "";
 
     if (!CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
-        CloseHandle(hFile);
-        return "";
+        CloseHandle(hFile); return "";
     }
-
     if (!CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash)) {
-        CryptReleaseContext(hProv, 0);
-        CloseHandle(hFile);
-        return "";
+        CryptReleaseContext(hProv, 0); CloseHandle(hFile); return "";
     }
 
-    BYTE buffer[8192];
+    BYTE  buffer[8192];
     DWORD bytes_read;
-    while (ReadFile(hFile, buffer, sizeof(buffer), &bytes_read, nullptr) && bytes_read > 0) {
+    while (ReadFile(hFile, buffer, sizeof(buffer), &bytes_read, nullptr) && bytes_read > 0)
         CryptHashData(hHash, buffer, bytes_read, 0);
-    }
 
-    BYTE hash[32];
-    DWORD hash_len = sizeof(hash);
+    BYTE hash[32]; DWORD hash_len = sizeof(hash);
     if (CryptGetHashParam(hHash, HP_HASHVAL, hash, &hash_len, 0)) {
         std::ostringstream oss;
         for (DWORD i = 0; i < hash_len; ++i)
@@ -320,42 +323,29 @@ std::string FileScanner::ComputeSHA256(const std::wstring& file_path) {
 bool FileScanner::RunYaraScan(const std::wstring& file_path, std::string& out_rule) {
 #ifdef NULLBOT_HAVE_YARA
     if (!impl_->yara_rules) return false;
-
     std::lock_guard<std::mutex> lock(impl_->yara_mutex);
 
-    struct YaraScanContext {
-        bool        matched = false;
-        std::string rule_name;
-    } ctx;
-
+    struct YaraScanContext { bool matched = false; std::string rule_name; } ctx;
     std::string path_narrow(file_path.begin(), file_path.end());
 
     yr_rules_scan_file(
-        impl_->yara_rules,
-        path_narrow.c_str(),
-        SCAN_FLAGS_FAST_MODE,
-        [](YR_SCAN_CONTEXT* /*scan_ctx*/, int msg, void* msg_data, void* user_data) -> int {
+        impl_->yara_rules, path_narrow.c_str(), SCAN_FLAGS_FAST_MODE,
+        [](YR_SCAN_CONTEXT*, int msg, void* msg_data, void* user_data) -> int {
             if (msg == CALLBACK_MSG_RULE_MATCHING) {
-                auto* rule     = static_cast<YR_RULE*>(msg_data);
-                auto* scan_ctx = static_cast<YaraScanContext*>(user_data);
-                scan_ctx->matched   = true;
-                scan_ctx->rule_name = rule->identifier;
+                auto* rule = static_cast<YR_RULE*>(msg_data);
+                auto* ctx  = static_cast<YaraScanContext*>(user_data);
+                ctx->matched   = true;
+                ctx->rule_name = rule->identifier;
                 return CALLBACK_ABORT;
             }
             return CALLBACK_CONTINUE;
         },
-        &ctx,
-        0
-    );
+        &ctx, 0);
 
-    if (ctx.matched) {
-        out_rule = ctx.rule_name;
-        return true;
-    }
+    if (ctx.matched) { out_rule = ctx.rule_name; return true; }
     return false;
 #else
-    (void)file_path;
-    (void)out_rule;
+    (void)file_path; (void)out_rule;
     return false;
 #endif
 }
@@ -363,23 +353,19 @@ bool FileScanner::RunYaraScan(const std::wstring& file_path, std::string& out_ru
 // ─── Entropy ──────────────────────────────────────────────────────────────────
 
 double FileScanner::ComputeFileEntropy(const std::wstring& file_path) {
-    HANDLE hFile = CreateFileW(
-        file_path.c_str(), GENERIC_READ, FILE_SHARE_READ,
-        nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr
-    );
+    HANDLE hFile = CreateFileW(file_path.c_str(), GENERIC_READ, FILE_SHARE_READ,
+                               nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
     if (hFile == INVALID_HANDLE_VALUE) return 0.0;
 
-    DWORD freq[256] = {};
-    BYTE  buf[4096];
-    DWORD bytes_read;
+    DWORD     freq[256] = {};
+    BYTE      buf[4096];
+    DWORD     bytes_read;
     ULONGLONG total = 0;
-
     while (ReadFile(hFile, buf, sizeof(buf), &bytes_read, nullptr) && bytes_read > 0) {
         for (DWORD i = 0; i < bytes_read; ++i) freq[buf[i]]++;
         total += bytes_read;
     }
     CloseHandle(hFile);
-
     if (total == 0) return 0.0;
 
     double entropy = 0.0;
@@ -392,7 +378,7 @@ double FileScanner::ComputeFileEntropy(const std::wstring& file_path) {
 }
 
 bool FileScanner::IsHighEntropy(double entropy) {
-    return entropy >= ENTROPY_THRESHOLD;
+    return entropy >= heuristic::thresholds::SECTION_ENTROPY_HIGH;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -402,10 +388,8 @@ bool FileScanner::MatchesHashDatabase(const std::string& sha256, std::string& ou
     return impl_->sig_db.LookupHash(sha256, out_name);
 }
 
-ThreatLevel FileScanner::EvaluateThreatLevel(
-    const std::string& threat_name,
-    const std::string& detection_type)
-{
+ThreatLevel FileScanner::EvaluateThreatLevel(const std::string& threat_name,
+                                              const std::string& detection_type) {
     if (detection_type == "SIGNATURE") return ThreatLevel::MALICIOUS;
     if (threat_name.find("Botnet")  != std::string::npos) return ThreatLevel::CRITICAL;
     if (threat_name.find("Rootkit") != std::string::npos) return ThreatLevel::CRITICAL;

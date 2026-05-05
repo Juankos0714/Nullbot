@@ -4,6 +4,10 @@
  */
 
 #include "core/heuristic/pe_analyzer.h"
+#include "core/heuristic/thresholds.h"
+
+#include <cmath>
+#include <cstring>
 
 namespace nullbot {
 namespace heuristic {
@@ -19,6 +23,25 @@ PEAnalyzer::~PEAnalyzer() {
 bool PEAnalyzer::IsExecutable() const { return loaded_; }
 bool PEAnalyzer::IsValid()      const { return loaded_; }
 
+// ─── Import helpers ───────────────────────────────────────────────────────────
+
+static bool HasImport(const std::vector<SuspiciousImport>& imports,
+                      const std::string& fn_name) {
+    for (const auto& imp : imports)
+        if (imp.function_name == fn_name) return true;
+    return false;
+}
+
+// ─── Section name helper ──────────────────────────────────────────────────────
+
+static std::string SectionName(const IMAGE_SECTION_HEADER& sec) {
+    char buf[9] = {};
+    memcpy(buf, sec.Name, 8);
+    return buf;
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
 std::vector<SuspiciousImport> PEAnalyzer::GetSuspiciousImports() {
     std::vector<SuspiciousImport> result;
     if (!loaded_ && !Load()) return result;
@@ -26,17 +49,54 @@ std::vector<SuspiciousImport> PEAnalyzer::GetSuspiciousImports() {
     return result;
 }
 
-bool PEAnalyzer::HasAntiDebugTechniques() {
-    for (const auto& imp : GetSuspiciousImports()) {
-        if (imp.reason.find("Anti-debug") != std::string::npos) return true;
+std::vector<SectionEntropyResult> PEAnalyzer::GetSectionEntropies() {
+    std::vector<SectionEntropyResult> result;
+    if (!loaded_ && !Load()) return result;
+
+    for (WORD i = 0; i < section_count_; ++i) {
+        const auto& sec = sections_[i];
+        if (sec.SizeOfRawData == 0 || sec.PointerToRawData == 0) continue;
+
+        const BYTE* raw = static_cast<const BYTE*>(base_) + sec.PointerToRawData;
+
+        DWORD freq[256] = {};
+        for (DWORD j = 0; j < sec.SizeOfRawData; ++j) freq[raw[j]]++;
+
+        double entropy = 0.0;
+        for (int k = 0; k < 256; ++k) {
+            if (freq[k] == 0) continue;
+            double p = static_cast<double>(freq[k]) / sec.SizeOfRawData;
+            entropy -= p * log2(p);
+        }
+
+        result.push_back({SectionName(sec), entropy,
+                          entropy >= thresholds::SECTION_ENTROPY_HIGH});
     }
-    return false;
+    return result;
 }
 
-static bool HasImport(const std::vector<SuspiciousImport>& imports,
-                      const std::string& fn_name) {
-    for (const auto& imp : imports)
-        if (imp.function_name == fn_name) return true;
+std::vector<std::string> PEAnalyzer::GetSuspiciousSections() {
+    std::vector<std::string> result;
+    if (!loaded_ && !Load()) return result;
+
+    for (WORD i = 0; i < section_count_; ++i) {
+        const std::string name = SectionName(sections_[i]);
+        bool standard = false;
+        for (const auto& s : STANDARD_SECTION_NAMES) {
+            if (name == s) { standard = true; break; }
+        }
+        if (!standard) result.push_back(name);
+    }
+    return result;
+}
+
+bool PEAnalyzer::HasAntiDebugTechniques() {
+    int count = 0;
+    for (const auto& imp : GetSuspiciousImports()) {
+        if (imp.reason.find("Anti-debug") != std::string::npos) {
+            if (++count >= thresholds::ANTI_DEBUG_MIN_CLUSTER) return true;
+        }
+    }
     return false;
 }
 
@@ -49,10 +109,20 @@ bool PEAnalyzer::HasProcessHollowingPattern() {
 }
 
 bool PEAnalyzer::HasKeyloggerPattern() {
-    for (const auto& imp : GetSuspiciousImports()) {
-        if (imp.function_name == "SetWindowsHookEx") return true;
+    const auto imports = GetSuspiciousImports();
+    if (!HasImport(imports, "SetWindowsHookEx")) return false;
+    return HasImport(imports, "GetAsyncKeyState") || HasImport(imports, "GetKeyState");
+}
+
+std::string PEAnalyzer::IsPackerSignature() {
+    if (!loaded_ && !Load()) return "";
+
+    for (WORD i = 0; i < section_count_; ++i) {
+        const std::string name = SectionName(sections_[i]);
+        if (name == "UPX0" || name == "UPX1")         return "UPX";
+        if (name == ".MPRESS1" || name == ".MPRESS2") return "MPRESS";
     }
-    return false;
+    return "";
 }
 
 PEInfo PEAnalyzer::Analyze() {
@@ -66,6 +136,8 @@ PEInfo PEAnalyzer::Analyze() {
     info.import_count = static_cast<DWORD>(info.suspicious_imports.size());
     return info;
 }
+
+// ─── PE loading / unloading ───────────────────────────────────────────────────
 
 bool PEAnalyzer::Load() {
     hFile_ = CreateFileW(file_path_.c_str(), GENERIC_READ, FILE_SHARE_READ,
@@ -97,6 +169,8 @@ void PEAnalyzer::Unload() {
     if (hFile_ != INVALID_HANDLE_VALUE) { CloseHandle(hFile_);     hFile_ = INVALID_HANDLE_VALUE; }
     loaded_ = false;
 }
+
+// ─── Import table parsing ─────────────────────────────────────────────────────
 
 void PEAnalyzer::ParseImports(std::vector<SuspiciousImport>& out) {
     if (!nt_headers_) return;
@@ -133,6 +207,8 @@ void PEAnalyzer::ParseImports(std::vector<SuspiciousImport>& out) {
         }
     }
 }
+
+// ─── RVA to file-offset conversion ────────────────────────────────────────────
 
 LPVOID PEAnalyzer::RvaToVa(DWORD rva) {
     if (!base_ || rva == 0) return nullptr;
