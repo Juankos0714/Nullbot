@@ -95,6 +95,8 @@ inline const std::vector<std::pair<std::string, std::string>> PEAnalyzer::SUSPIC
     // Process injection
     { "VirtualAllocEx",         "Remote memory allocation — process injection" },
     { "WriteProcessMemory",     "Remote memory write — process injection" },
+    { "NtUnmapViewOfSection",   "Process hollowing — unmaps host process image" },
+    { "ZwUnmapViewOfSection",   "Process hollowing — unmaps host process image (Zw variant)" },
     { "CreateRemoteThread",     "Thread creation in remote process — injection" },
     { "NtCreateThreadEx",       "Undocumented thread creation — stealth injection" },
     { "RtlCreateUserThread",    "Undocumented thread creation — stealth injection" },

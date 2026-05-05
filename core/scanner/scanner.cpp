@@ -1,5 +1,5 @@
 /*
- * NullBot — Core Scanner Implementation
+ * NullBot — Open Source Anti-Botnet | GPL-3.0
  * File: core/scanner/scanner.cpp
  */
 
@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <filesystem>
 #include <iomanip>
 #include <mutex>
 #include <queue>
@@ -28,12 +29,48 @@ namespace scanner {
 struct FileScanner::Impl {
     std::string          db_path;
     signatures::SigDB    sig_db;
+    std::mutex           sig_db_mutex;
+    size_t               yara_rule_count = 0;
 #ifdef NULLBOT_HAVE_YARA
     YR_RULES*            yara_rules = nullptr;
     std::mutex           yara_mutex;
 #endif
     std::atomic<bool>    initialized{false};
 };
+
+// ─── YARA file-scope helpers (compiled out when libyara is absent) ────────────
+
+#ifdef NULLBOT_HAVE_YARA
+static size_t CountYaraRules(YR_RULES* rules) {
+    if (!rules) return 0;
+    size_t n = 0;
+    YR_RULE* rule = nullptr;
+    yr_rules_foreach(rules, rule) { n++; }
+    return n;
+}
+
+static size_t CompileYaraFromDir(const std::string& rules_dir, YR_RULES** out) {
+    YR_COMPILER* compiler = nullptr;
+    if (yr_compiler_create(&compiler) != ERROR_SUCCESS) return 0;
+
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    for (const auto& entry : fs::directory_iterator(rules_dir, ec)) {
+        if (entry.path().extension() == ".yar") {
+            FILE* fp = nullptr;
+            std::wstring wpath = entry.path().wstring();
+            if (_wfopen_s(&fp, wpath.c_str(), L"r") == 0 && fp) {
+                yr_compiler_add_file(compiler, fp, nullptr,
+                    entry.path().filename().string().c_str());
+                fclose(fp);
+            }
+        }
+    }
+    yr_compiler_get_rules(compiler, out);
+    yr_compiler_destroy(compiler);
+    return CountYaraRules(*out);
+}
+#endif
 
 // ─── Constructor / Destructor ─────────────────────────────────────────────────
 
@@ -56,15 +93,14 @@ FileScanner::~FileScanner() {
 
 bool FileScanner::Initialize() {
 #ifdef NULLBOT_HAVE_YARA
-    if (yr_initialize() != ERROR_SUCCESS) {
-        return false;
-    }
+    if (yr_initialize() != ERROR_SUCCESS) return false;
 
-    std::string rules_path = impl_->db_path + "\\compiled.yarc";
-    if (yr_rules_load(rules_path.c_str(), &impl_->yara_rules) != ERROR_SUCCESS) {
-        YR_COMPILER* compiler = nullptr;
-        yr_compiler_create(&compiler);
-        yr_compiler_destroy(compiler);
+    std::string compiled_path = impl_->db_path + "\\compiled.yarc";
+    if (yr_rules_load(compiled_path.c_str(), &impl_->yara_rules) == ERROR_SUCCESS) {
+        impl_->yara_rule_count = CountYaraRules(impl_->yara_rules);
+    } else {
+        impl_->yara_rule_count = CompileYaraFromDir(
+            impl_->db_path + "\\rules", &impl_->yara_rules);
     }
 #endif
 
@@ -77,6 +113,23 @@ bool FileScanner::Initialize() {
 }
 
 bool FileScanner::ReloadSignatures() {
+#ifdef NULLBOT_HAVE_YARA
+    std::lock_guard<std::mutex> lock(impl_->yara_mutex);
+    if (impl_->yara_rules) {
+        yr_rules_destroy(impl_->yara_rules);
+        impl_->yara_rules = nullptr;
+    }
+    impl_->yara_rule_count = 0;
+
+    std::string compiled_path = impl_->db_path + "\\compiled.yarc";
+    if (yr_rules_load(compiled_path.c_str(), &impl_->yara_rules) == ERROR_SUCCESS) {
+        impl_->yara_rule_count = CountYaraRules(impl_->yara_rules);
+    } else {
+        impl_->yara_rule_count = CompileYaraFromDir(
+            impl_->db_path + "\\rules", &impl_->yara_rules);
+    }
+#endif
+
     return impl_->sig_db.Load(impl_->db_path + "\\signatures.db");
 }
 
@@ -166,7 +219,6 @@ std::vector<ScanResult> FileScanner::ScanDirectory(
 
             if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
                 if (options.recursive) {
-                    // Check excluded paths
                     bool excluded = false;
                     for (const auto& ex : options.excluded_paths) {
                         if (full_path.find(ex) != std::wstring::npos) {
@@ -346,6 +398,7 @@ bool FileScanner::IsHighEntropy(double entropy) {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 bool FileScanner::MatchesHashDatabase(const std::string& sha256, std::string& out_name) {
+    std::lock_guard<std::mutex> lock(impl_->sig_db_mutex);
     return impl_->sig_db.LookupHash(sha256, out_name);
 }
 
@@ -361,7 +414,7 @@ ThreatLevel FileScanner::EvaluateThreatLevel(
 }
 
 size_t FileScanner::GetSignatureCount() const { return impl_->sig_db.Count(); }
-size_t FileScanner::GetYaraRuleCount()  const { return 0; }
+size_t FileScanner::GetYaraRuleCount()  const { return impl_->yara_rule_count; }
 
 } // namespace scanner
 } // namespace nullbot

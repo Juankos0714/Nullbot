@@ -33,14 +33,19 @@ bool PEAnalyzer::HasAntiDebugTechniques() {
     return false;
 }
 
+static bool HasImport(const std::vector<SuspiciousImport>& imports,
+                      const std::string& fn_name) {
+    for (const auto& imp : imports)
+        if (imp.function_name == fn_name) return true;
+    return false;
+}
+
 bool PEAnalyzer::HasProcessHollowingPattern() {
-    bool has_alloc = false, has_write = false, has_thread = false;
-    for (const auto& imp : GetSuspiciousImports()) {
-        if (imp.function_name == "VirtualAllocEx")     has_alloc  = true;
-        if (imp.function_name == "WriteProcessMemory") has_write  = true;
-        if (imp.function_name == "CreateRemoteThread") has_thread = true;
-    }
-    return has_alloc && has_write && has_thread;
+    const auto imports = GetSuspiciousImports();
+    return HasImport(imports, "VirtualAllocEx")
+        && HasImport(imports, "WriteProcessMemory")
+        && (HasImport(imports, "NtUnmapViewOfSection")
+            || HasImport(imports, "ZwUnmapViewOfSection"));
 }
 
 bool PEAnalyzer::HasKeyloggerPattern() {
