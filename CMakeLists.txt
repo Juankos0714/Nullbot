@@ -37,6 +37,8 @@ add_library(nullbot_core STATIC
     core/scanner/scanner.cpp
     core/heuristic/pe_analyzer.cpp
     core/quarantine/quarantine.cpp
+    core/realtime/directory_watcher.cpp
+    core/realtime/realtime_protection.cpp
     signatures/sig_database.cpp
 )
 
@@ -53,6 +55,7 @@ target_link_libraries(nullbot_core
         advapi32
         shlwapi
         ole32
+        shell32
         bcrypt
 )
 
@@ -60,6 +63,31 @@ if(yara_FOUND)
     target_compile_definitions(nullbot_core PRIVATE NULLBOT_HAVE_YARA=1)
     target_link_libraries(nullbot_core PUBLIC yara::yara)
 endif()
+
+# ─── AMSI provider DLL ───────────────────────────────────────────────────────
+# Compiled as a standalone in-process COM server registered with the Windows
+# AMSI subsystem. Run regsvr32 nullbot_amsi_provider.dll (as Administrator)
+# or call DllRegisterServer directly to activate.
+add_library(nullbot_amsi_provider SHARED
+    core/realtime/amsi_provider.cpp
+    core/realtime/nullbot_amsi_provider.def
+)
+
+target_include_directories(nullbot_amsi_provider PRIVATE ${CMAKE_SOURCE_DIR})
+
+target_compile_definitions(nullbot_amsi_provider PRIVATE
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+    UNICODE
+    _UNICODE
+    _WIN32_WINNT=0x0A00
+)
+
+target_compile_options(nullbot_amsi_provider PRIVATE /W4 /WX /GS)
+
+target_link_options(nullbot_amsi_provider PRIVATE /DYNAMICBASE /NXCOMPAT)
+
+target_link_libraries(nullbot_amsi_provider PRIVATE ole32 advapi32)
 
 # ─── Network module library ───────────────────────────────────────────────────
 add_library(nullbot_network STATIC
@@ -120,6 +148,7 @@ add_executable(nullbot_tests
     tests/unit/test_heuristic.cpp
     tests/unit/test_sig_database.cpp
     tests/unit/test_c2_detector.cpp
+    tests/unit/test_directory_watcher.cpp
     tests/integration/test_quarantine.cpp
 )
 
