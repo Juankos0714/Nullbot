@@ -5,6 +5,7 @@
 
 #include "network/c2_detection/c2_detector.h"
 #include "network/c2_detection/beacon_math.h"
+#include "network/dga/dga_detector.h"
 
 #include <sqlite3.h>
 #include <windows.h>
@@ -20,8 +21,9 @@ namespace network {
 // ─── Impl ─────────────────────────────────────────────────────────────────────
 
 struct C2Detector::Impl {
-    std::mutex beacon_mutex;
-    std::mutex callback_mutex;
+    std::mutex   beacon_mutex;
+    std::mutex   callback_mutex;
+    DGADetector  dga_detector;
 };
 
 // ─── BeaconTracker ────────────────────────────────────────────────────────────
@@ -179,7 +181,23 @@ void C2Detector::InspectDNSQuery(DWORD pid,
         return;
     }
 
-    // TODO: integrate DGADetector here
+    DGAAnalysisResult dga = impl_->dga_detector.Analyze(normalized);
+    if (dga.is_likely_dga) {
+        FILETIME ft{};
+        GetSystemTimeAsFileTime(&ft);
+        EmitAlert({
+            C2AlertLevel::WARNING,
+            process_name,
+            pid,
+            normalized,
+            "DGA",
+            "DGA pattern detected (confidence " +
+                std::to_string(static_cast<int>(dga.confidence * 100)) + "%): " +
+                dga.explanation,
+            ft,
+            false
+        });
+    }
 }
 
 // ─── InspectConnection ────────────────────────────────────────────────────────

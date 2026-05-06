@@ -20,7 +20,9 @@
 
 #include "core/scanner/scanner.h"
 #include "core/quarantine/quarantine.h"
+#include "core/realtime/realtime_protection.h"
 #include "network/c2_detection/c2_detector.h"
+#include "network/monitor/net_monitor.h"
 
 namespace fs = std::filesystem;
 using namespace nullbot;
@@ -52,6 +54,7 @@ void PrintHelp() {
         L"  nullbot_cli.exe --scan --quick        Scan common infection points\n"
         L"  nullbot_cli.exe --watch               Start real-time protection\n"
         L"  nullbot_cli.exe --update              Update threat signatures\n"
+        L"  nullbot_cli.exe --status              Show protection status\n"
         L"  nullbot_cli.exe --quarantine list     List quarantined files\n"
         L"  nullbot_cli.exe --quarantine restore <id>  Restore a quarantined file\n"
         L"\nOptions:\n"
@@ -180,32 +183,174 @@ int CmdScan(const std::vector<std::wstring>& args) {
     return total_threats > 0 ? 2 : 0;
 }
 
+// ─── Update command ───────────────────────────────────────────────────────────
+
+int CmdUpdate(const std::vector<std::wstring>& args) {
+    // Locate update_feeds.py relative to this executable (build/bin -> project root)
+    wchar_t exe_buf[MAX_PATH] = {};
+    GetModuleFileNameW(nullptr, exe_buf, MAX_PATH);
+    std::wstring exe_dir(exe_buf);
+    auto slash = exe_dir.rfind(L'\\');
+    if (slash != std::wstring::npos) exe_dir = exe_dir.substr(0, slash);
+
+    std::wstring script = exe_dir + L"\\..\\..\\signatures\\updater\\update_feeds.py";
+
+    std::wstring cmd = L"python \"" + script + L"\"";
+    for (const auto& a : args) {
+        cmd += L" ";
+        cmd += a;
+    }
+
+    SECURITY_ATTRIBUTES sa{ sizeof(SECURITY_ATTRIBUTES), nullptr, TRUE };
+    HANDLE read_pipe = nullptr, write_pipe = nullptr;
+    if (!CreatePipe(&read_pipe, &write_pipe, &sa, 0)) {
+        std::wcerr << L"  [ERROR] Could not create pipe.\n";
+        return 1;
+    }
+    SetHandleInformation(read_pipe, HANDLE_FLAG_INHERIT, 0);
+
+    STARTUPINFOW si{ sizeof(STARTUPINFOW) };
+    si.dwFlags    = STARTF_USESTDHANDLES;
+    si.hStdOutput = write_pipe;
+    si.hStdError  = write_pipe;
+    si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+
+    PROCESS_INFORMATION pi{};
+    BOOL ok = CreateProcessW(nullptr, cmd.data(), nullptr, nullptr,
+                             TRUE, 0, nullptr, nullptr, &si, &pi);
+    CloseHandle(write_pipe);
+
+    if (!ok) {
+        CloseHandle(read_pipe);
+        std::wcerr << L"  [ERROR] Could not launch Python. Ensure 'python' is in PATH.\n"
+                   << L"  Manual: python signatures\\updater\\update_feeds.py\n";
+        return 1;
+    }
+
+    char buf[4096];
+    DWORD bytes_read = 0;
+    while (ReadFile(read_pipe, buf, sizeof(buf) - 1, &bytes_read, nullptr)
+           && bytes_read > 0) {
+        buf[bytes_read] = '\0';
+        std::cout << buf;
+        std::cout.flush();
+    }
+    CloseHandle(read_pipe);
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD exit_code = 0;
+    GetExitCodeProcess(pi.hProcess, &exit_code);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return static_cast<int>(exit_code);
+}
+
+// ─── Status command ───────────────────────────────────────────────────────────
+
+int CmdStatus() {
+    std::wcout << L"  NullBot — Protection Status\n";
+    std::wcout << L"  ───────────────────────────\n\n";
+
+    // Signature database
+    scanner::FileScanner engine(SIG_DB);
+    bool sig_ok = engine.Initialize();
+    std::wcout << L"  Signatures:    " << engine.GetSignatureCount() << L" hashes";
+    if (engine.GetYaraRuleCount() > 0)
+        std::wcout << L", " << engine.GetYaraRuleCount() << L" YARA rules";
+    if (!sig_ok) std::wcout << L"  [DB not found]";
+    std::wcout << L"\n";
+
+    // Last update time from signatures.db file modification time
+    std::wstring db_file = std::wstring(SIG_DB.begin(), SIG_DB.end()) + L"\\signatures.db";
+    WIN32_FILE_ATTRIBUTE_DATA fad{};
+    if (GetFileAttributesExW(db_file.c_str(), GetFileExInfoStandard, &fad)) {
+        SYSTEMTIME utc{}, local_st{};
+        FileTimeToSystemTime(&fad.ftLastWriteTime, &utc);
+        SystemTimeToTzSpecificLocalTime(nullptr, &utc, &local_st);
+        wchar_t ts[32];
+        swprintf_s(ts, L"%04hu-%02hu-%02hu %02hu:%02hu",
+                   local_st.wYear, local_st.wMonth, local_st.wDay,
+                   local_st.wHour, local_st.wMinute);
+        std::wcout << L"  Last updated:  " << ts << L"\n";
+    } else {
+        std::wcout << L"  Last updated:  never (run --update)\n";
+    }
+
+    // Quarantine
+    quarantine::QuarantineManager qm(QUARANTINE);
+    qm.Initialize();
+    std::wcout << L"  Quarantine:    " << qm.GetCount() << L" file(s)";
+    ULONGLONG total_bytes = qm.GetTotalSize();
+    if (total_bytes > 0)
+        std::wcout << L", " << (total_bytes / 1024) << L" KB";
+    std::wcout << L"\n";
+
+    // Real-time protection — the CLI does not own the watcher; indicate how to start
+    std::wcout << L"  Real-time:     inactive (run '--watch' to activate)\n\n";
+    return 0;
+}
+
 // ─── Watch command (real-time protection) ────────────────────────────────────
 
+// Shared stop event — must be visible to the Ctrl+C handler (static linkage).
+static HANDLE g_watch_stop_event = nullptr;
+
 int CmdWatch() {
-    std::wcout << L"  Starting real-time protection...\n";
-    std::wcout << L"  Press Ctrl+C to stop.\n\n";
+    g_watch_stop_event = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    if (!g_watch_stop_event) return 1;
 
-    network::C2Detector c2;
-    c2.LoadBlacklists(SIG_DB);
-    c2.StartMonitoring([](const network::C2Alert& alert) {
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-            FOREGROUND_RED | FOREGROUND_INTENSITY);
+    SetConsoleCtrlHandler([](DWORD) -> BOOL {
+        if (g_watch_stop_event) SetEvent(g_watch_stop_event);
+        return TRUE;
+    }, TRUE);
+
+    auto PrintC2Alert = [](const network::C2Alert& alert) {
+        SetConsoleColor(FOREGROUND_RED | FOREGROUND_INTENSITY);
         std::wcout << L"\n  [C2 ALERT] ";
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-            FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-
+        SetConsoleColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
         std::wcout
             << std::wstring(alert.process_name.begin(), alert.process_name.end())
             << L" (PID " << alert.pid << L")\n"
-            << L"    Indicator: " << std::wstring(alert.indicator.begin(), alert.indicator.end()) << L"\n"
-            << L"    Method:    " << std::wstring(alert.detection_method.begin(), alert.detection_method.end()) << L"\n"
-            << L"    Info:      " << std::wstring(alert.description.begin(), alert.description.end()) << L"\n";
-    });
+            << L"    Method:    "
+            << std::wstring(alert.detection_method.begin(), alert.detection_method.end())
+            << L"\n    Indicator: "
+            << std::wstring(alert.indicator.begin(), alert.indicator.end()) << L"\n";
+    };
 
-    // Block until Ctrl+C
-    SetConsoleCtrlHandler([](DWORD) -> BOOL { return TRUE; }, TRUE);
-    WaitForSingleObject(GetCurrentProcess(), INFINITE);
+    // C2 network detector
+    network::C2Detector c2;
+    c2.LoadBlacklists(SIG_DB);
+    c2.StartMonitoring(PrintC2Alert);
+
+    // Network connection poller
+    network::NetMonitor net_mon;
+    net_mon.StartPolling(c2, 5000);
+
+    // Filesystem real-time protection (scanner + optional auto-quarantine)
+    realtime::RealTimeProtection rtp(SIG_DB, QUARANTINE);
+    rtp.SetThreatCallback([](const scanner::ScanResult& r) {
+        SetConsoleColor(FOREGROUND_RED | FOREGROUND_INTENSITY);
+        std::wcout << L"\n  [THREAT] ";
+        SetConsoleColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+        std::wcout << r.file_path << L"\n"
+                   << L"    Name: "
+                   << std::wstring(r.threat_name.begin(), r.threat_name.end()) << L"\n";
+    });
+    rtp.Start(false);
+
+    std::wcout << L"  Watching %TEMP%, %APPDATA%, Startup folder\n";
+    std::wcout << L"  Network polling: every 5 seconds\n";
+    std::wcout << L"  Press Ctrl+C to stop.\n\n";
+
+    WaitForSingleObject(g_watch_stop_event, INFINITE);
+
+    net_mon.StopPolling();
+    rtp.Stop();
+    c2.StopMonitoring();
+    CloseHandle(g_watch_stop_event);
+    g_watch_stop_event = nullptr;
+
+    std::wcout << L"\n  Real-time protection stopped.\n";
     return 0;
 }
 
@@ -265,11 +410,12 @@ int wmain(int argc, wchar_t* argv[]) {
         return CmdScan(std::vector<std::wstring>(args.begin() + 1, args.end()));
     } else if (cmd == L"--watch") {
         return CmdWatch();
+    } else if (cmd == L"--update") {
+        return CmdUpdate(std::vector<std::wstring>(args.begin() + 1, args.end()));
+    } else if (cmd == L"--status") {
+        return CmdStatus();
     } else if (cmd == L"--quarantine") {
         return CmdQuarantine(std::vector<std::wstring>(args.begin() + 1, args.end()));
-    } else if (cmd == L"--update") {
-        std::wcout << L"  Run: python signatures/updater/update_feeds.py\n";
-        return 0;
     } else if (cmd == L"--help" || cmd == L"-h") {
         PrintHelp();
         return 0;

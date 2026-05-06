@@ -48,40 +48,128 @@ nullbot/
 
 ### Prerequisites
 
-- Windows 11 (x64)
-- Visual Studio 2022 with C++ and C# workloads
-- Windows SDK 10.0.22621+
-- Python 3.11+ (for signature tooling)
-- CMake 3.25+
+| Tool | Version | Notes |
+|------|---------|-------|
+| Windows 11 x64 | 22H2+ | Build and target platform |
+| Visual Studio 2022 Build Tools | 17.x | Install "Desktop development with C++" workload |
+| Windows SDK | 10.0.22621+ | Included with VS Build Tools |
+| CMake | 3.25+ | [cmake.org/download](https://cmake.org/download/) |
+| Python | 3.11+ | For signature updater (`python` must be in PATH) |
+| Ninja | any | Bundled with VS Build Tools |
 
-### Build
+### Build from source (step by step)
 
-```bash
-# Clone
-git clone https://github.com/your-org/nullbot.git
+```powershell
+# 1. Clone the repository
+git clone https://github.com/Juankos0714/nullbot.git
 cd nullbot
 
-# Build core engine (C++)
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+# 2. Open a VS 2022 x64 developer prompt, then:
+#    (or run vcvars64.bat manually before the steps below)
 
-# Build UI (C#)
-cd ui
-dotnet build NullBot.UI.csproj
+# 3. Configure — Release build, Ninja generator
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-# Install Python tools
-cd ../signatures
+# 4. Compile all targets
+cmake --build build --parallel
+
+# Outputs:
+#   build\bin\nullbot_cli.exe          — command-line tool
+#   build\bin\nullbot_amsi_provider.dll — AMSI COM provider
+#   build\bin\nullbot_tests.exe         — test runner
+```
+
+If CMake cannot find the Ninja executable, use the VS generator instead:
+
+```powershell
+cmake -B build -S . -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
+```
+
+### Install Python signature tools
+
+```powershell
+cd signatures\updater
 pip install -r requirements.txt
 ```
 
-### Running (Development)
+### Run the test suite
 
-```bash
-# Run with Windows Sandbox or VM recommended for testing
-.\build\nullbot_core.exe --mode scan --path "C:\Users\%USERNAME%\Downloads"
+```powershell
+# Quick: run the test binary directly
+build\bin\nullbot_tests.exe
 
-# Start UI
-cd ui && dotnet run
+# Via CTest (shows pass/fail summary)
+ctest --test-dir build --output-on-failure
+
+# Expected output: 51/51 tests passed  (unit + integration)
+```
+
+> **Windows Defender note**: `FullScan_DetectsEicar_ByHash` and
+> `FullScan_RealTimeDetection_CallbackFired` create the EICAR test string on disk.
+> Add a Defender exclusion on `%TEMP%` before running, otherwise Defender removes
+> the file before NullBot's scanner sees it:
+> ```powershell
+> Add-MpPreference -ExclusionPath $env:TEMP   # requires admin
+> ```
+
+### Quick scan
+
+```powershell
+# Scan %TEMP%, %APPDATA%, and Startup folder (common infection points)
+build\bin\nullbot_cli.exe --scan --quick
+
+# Scan a specific directory
+build\bin\nullbot_cli.exe --scan --path "C:\Users\$env:USERNAME\Downloads"
+
+# Scan and auto-quarantine threats
+build\bin\nullbot_cli.exe --scan --quick --auto-quarantine
+```
+
+### Update threat signatures
+
+```powershell
+# Download latest feeds from Abuse.ch, AlienVault OTX, Emerging Threats
+build\bin\nullbot_cli.exe --update
+
+# Dry run — show what would be inserted without writing to DB
+build\bin\nullbot_cli.exe --update --dry-run
+
+# Schedule automatic updates every 6 hours (requires admin)
+powershell -ExecutionPolicy Bypass -File scripts\install_scheduler.ps1
+```
+
+### Real-time protection
+
+```powershell
+# Start real-time protection (filesystem watcher + network monitor)
+# Watches: %TEMP%, %APPDATA%, Startup folder
+# Press Ctrl+C to stop
+build\bin\nullbot_cli.exe --watch
+
+# Show current protection status
+build\bin\nullbot_cli.exe --status
+```
+
+### Install AMSI provider (script scanning)
+
+```powershell
+# Registers NullBot as a Windows AMSI provider — scans PowerShell, VBScript, etc.
+# Requires Administrator
+regsvr32 build\bin\nullbot_amsi_provider.dll
+
+# Uninstall
+regsvr32 /u build\bin\nullbot_amsi_provider.dll
+```
+
+### Quarantine management
+
+```powershell
+# List quarantined files
+build\bin\nullbot_cli.exe --quarantine list
+
+# Restore a file by ID
+build\bin\nullbot_cli.exe --quarantine restore 3
 ```
 
 ---

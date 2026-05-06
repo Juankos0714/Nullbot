@@ -150,6 +150,8 @@ add_executable(nullbot_tests
     tests/unit/test_c2_detector.cpp
     tests/unit/test_directory_watcher.cpp
     tests/integration/test_quarantine.cpp
+    tests/integration/test_full_scan.cpp
+    tests/integration/test_c2_integration.cpp
 )
 
 target_include_directories(nullbot_tests
