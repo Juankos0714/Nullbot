@@ -12,6 +12,8 @@
 namespace nullbot {
 namespace network {
 
+class C2Detector;
+
 class NetMonitor {
 public:
     NetMonitor();
@@ -20,8 +22,11 @@ public:
     NetMonitor(const NetMonitor&)            = delete;
     NetMonitor& operator=(const NetMonitor&) = delete;
 
-    bool Start();
-    void Stop();
+    // Background thread: enumerate active TCP connections every interval_ms and
+    // feed each one into detector.InspectConnection().
+    void StartPolling(C2Detector& detector, int interval_ms);
+    void StopPolling();
+
     bool IsRunning() const;
 
 private:

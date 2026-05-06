@@ -119,6 +119,7 @@ add_executable(nullbot_tests
     tests/unit/test_dga.cpp
     tests/unit/test_heuristic.cpp
     tests/unit/test_sig_database.cpp
+    tests/unit/test_c2_detector.cpp
     tests/integration/test_quarantine.cpp
 )
 
