@@ -1,0 +1,125 @@
+<UserControl x:Class="NullBot.UI.Views.NetworkView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NullBot.UI.ViewModels"
+             xmlns:conv="clr-namespace:NullBot.UI.Converters"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:NetworkViewModel}"
+             Background="{StaticResource BackgroundBrush}">
+
+    <UserControl.Resources>
+        <conv:ConnectionStatusToColorConverter x:Key="ConnColor"/>
+        <conv:RelativeTimeConverter x:Key="RelTime"/>
+    </UserControl.Resources>
+
+    <Grid Margin="32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Network (C2 Activity)"
+                   Style="{StaticResource HeadlineStyle}" Margin="0,0,0,20"/>
+
+        <!-- Stats bar -->
+        <Grid Grid.Row="1" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Padding="16,12" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="TOTAL" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding TotalConnections}" Style="{StaticResource KpiValueStyle}" FontSize="28"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Padding="16,12" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="SUSPICIOUS" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding SuspiciousConnections}"
+                               FontFamily="{StaticResource MonoFont}"
+                               FontSize="28" FontWeight="Bold"
+                               Foreground="{StaticResource WarningBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Padding="16,12" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="BEACONING" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding BeaconingDetected}"
+                               FontFamily="{StaticResource MonoFont}"
+                               FontSize="28" FontWeight="Bold"
+                               Foreground="{StaticResource DangerBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <Button Grid.Column="3" Content="Refresh"
+                    Style="{StaticResource GhostButtonStyle}"
+                    Command="{Binding RefreshCommand}"
+                    VerticalAlignment="Center"/>
+        </Grid>
+
+        <!-- Connection list -->
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Connections}"
+                  SelectedItem="{Binding SelectedConnection}"
+                  Style="{StaticResource DarkDataGridStyle}"
+                  Background="{StaticResource PanelBrush}">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Status" Width="70">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Ellipse Width="8" Height="8" Margin="12,0"
+                                     Fill="{Binding Status, Converter={StaticResource ConnColor}}"
+                                     VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Process"     Binding="{Binding ProcessName}"    Width="120"/>
+                <DataGridTextColumn Header="PID"         Binding="{Binding Pid}"            Width="60"/>
+                <DataGridTextColumn Header="Destination" Binding="{Binding DestinationIp}"  Width="140"/>
+                <DataGridTextColumn Header="Port"        Binding="{Binding DestinationPort}" Width="60"/>
+                <DataGridTextColumn Header="SNI"         Binding="{Binding Sni}"            Width="*"/>
+                <DataGridTextColumn Header="Reason"      Binding="{Binding StatusReason}"   Width="200"/>
+                <DataGridTextColumn Header="First Seen"  Binding="{Binding FirstSeen, Converter={StaticResource RelTime}}" Width="100"/>
+            </DataGrid.Columns>
+            <DataGrid.RowDetailsTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="16,8" Orientation="Horizontal">
+                        <TextBlock Text="Beaconing: " Style="{StaticResource CaptionStyle}"/>
+                        <TextBlock Text="{Binding IsBeaconing}" Style="{StaticResource MonoStyle}" FontSize="11"/>
+                        <TextBlock Text="   Intervals: " Style="{StaticResource CaptionStyle}"/>
+                        <TextBlock Text="{Binding BeaconingIntervalsSec, StringFormat={}[{0}]}"
+                                   Style="{StaticResource MonoStyle}" FontSize="11"/>
+                    </StackPanel>
+                </DataTemplate>
+            </DataGrid.RowDetailsTemplate>
+        </DataGrid>
+
+        <!-- Status text -->
+        <TextBlock Grid.Row="3"
+                   Style="{StaticResource CaptionStyle}"
+                   Margin="0,8,0,0">
+            <TextBlock.Text>
+                <MultiBinding StringFormat="{}Network data from --status output. Last refresh shows {0} connections.">
+                    <Binding Path="TotalConnections"/>
+                </MultiBinding>
+            </TextBlock.Text>
+        </TextBlock>
+    </Grid>
+</UserControl>

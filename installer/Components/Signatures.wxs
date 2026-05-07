@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bundles the initial YARA rules into the installer so the engine works immediately
+  after install, before the first auto-update runs.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+
+    <ComponentGroup Id="SignaturesComponents" Directory="SIGSDIR">
+
+      <Component Id="CmpYaraRules" Guid="E6F7A8B9-C0D1-2345-9012-000000000015">
+        <File Id="FileYaraRules"
+              Source="..\..\signatures\rules\botnet_agents.yar"
+              KeyPath="yes"/>
+      </Component>
+
+    </ComponentGroup>
+
+  </Fragment>
+</Wix>

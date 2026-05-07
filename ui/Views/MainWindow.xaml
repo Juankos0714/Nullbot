@@ -1,0 +1,203 @@
+<Window x:Class="NullBot.UI.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:NullBot.UI.ViewModels"
+        xmlns:views="clr-namespace:NullBot.UI.Views"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:MainWindowViewModel}"
+        Title="NullBot" Height="768" Width="1280"
+        MinHeight="600" MinWidth="960"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResizeWithGrip">
+
+    <Window.Resources>
+        <!-- DataTemplates: wire ViewModels to Views without code-behind -->
+        <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+            <views:DashboardView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ScanViewModel}">
+            <views:ScanView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:RealtimeViewModel}">
+            <views:RealtimeView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:QuarantineViewModel}">
+            <views:QuarantineView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:NetworkViewModel}">
+            <views:NetworkView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+            <views:SettingsView/>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border Background="{StaticResource BackgroundBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8">
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- ═══ Title bar ═══ -->
+            <Grid Grid.Row="0"
+                  Background="{StaticResource PanelBrush}"
+                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="240"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- App name -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal"
+                            VerticalAlignment="Center" Margin="20,0">
+                    <TextBlock Text="NULL" Foreground="{StaticResource AccentBrush}"
+                               FontFamily="{StaticResource MonoFont}"
+                               FontSize="14" FontWeight="Bold"/>
+                    <TextBlock Text="BOT" Foreground="{StaticResource TextPrimaryBrush}"
+                               FontFamily="{StaticResource MonoFont}"
+                               FontSize="14" FontWeight="Bold"/>
+                </StackPanel>
+
+                <!-- Window controls -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                            VerticalAlignment="Center" Margin="0,0,4,0">
+                    <Button Width="36" Height="28"
+                            Content="&#8211;"
+                            Click="MinimizeButton_Click"
+                            Foreground="{StaticResource TextSecondaryBrush}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="16" Cursor="Hand"
+                            FocusVisualStyle="{x:Null}"/>
+                    <Button Width="36" Height="28"
+                            Content="&#x2715;"
+                            Click="CloseButton_Click"
+                            Foreground="{StaticResource TextSecondaryBrush}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="12" Cursor="Hand"
+                            FocusVisualStyle="{x:Null}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background"   Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Foreground"   Value="{StaticResource TextSecondaryBrush}"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                                    CornerRadius="0,6,0,0" Padding="4">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background"
+                                                            Value="{StaticResource DangerBrush}"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ═══ Body ═══ -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="240"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Sidebar -->
+                <Border Grid.Column="0"
+                        Background="{StaticResource PanelBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="0,0,1,0">
+                    <ItemsControl ItemsSource="{Binding SidebarItems}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:SidebarItemViewModel}">
+                                <Button Style="{StaticResource SidebarButtonStyle}"
+                                        Command="{Binding DataContext.NavigateToCommand,
+                                                  RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}">
+                                    <Grid Height="44">
+
+                                        <!-- Active indicator bar -->
+                                        <Rectangle Width="3" HorizontalAlignment="Left"
+                                                   RadiusX="1.5" RadiusY="1.5">
+                                            <Rectangle.Style>
+                                                <Style TargetType="Rectangle">
+                                                    <Setter Property="Fill" Value="Transparent"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="Fill" Value="{StaticResource AccentBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Rectangle.Style>
+                                        </Rectangle>
+
+                                        <!-- Active row highlight -->
+                                        <Border CornerRadius="0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="Background"
+                                                                    Value="{StaticResource SidebarActiveBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+
+                                        <!-- Nav label -->
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontFamily="{StaticResource BodyFont}"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   Margin="24,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground"
+                                                            Value="{StaticResource TextSecondaryBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="Foreground"
+                                                                    Value="{StaticResource TextPrimaryBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <!-- Content area: DataTemplates above handle routing -->
+                <ContentControl Grid.Column="1"
+                                Content="{Binding CurrentViewModel}"
+                                Focusable="False"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

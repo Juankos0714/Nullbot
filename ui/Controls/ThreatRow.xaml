@@ -1,0 +1,85 @@
+<UserControl x:Class="NullBot.UI.Controls.ThreatRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:conv="clr-namespace:NullBot.UI.Converters"
+             mc:Ignorable="d"
+             d:DesignWidth="600" d:DesignHeight="44">
+
+    <UserControl.Resources>
+        <conv:SeverityToColorConverter  x:Key="SevColor"/>
+        <conv:RelativeTimeConverter     x:Key="RelTime"/>
+    </UserControl.Resources>
+
+    <Border Background="Transparent"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="16,10">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{StaticResource SidebarHoverBrush}"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="8"/>     <!-- severity bar -->
+                <ColumnDefinition Width="110"/>   <!-- timestamp -->
+                <ColumnDefinition Width="*"/>     <!-- name + path -->
+                <ColumnDefinition Width="90"/>    <!-- type badge -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Severity bar -->
+            <Rectangle Grid.Column="0"
+                       Width="3" Height="24"
+                       HorizontalAlignment="Left"
+                       RadiusX="1.5" RadiusY="1.5"
+                       Fill="{Binding Severity,
+                              RelativeSource={RelativeSource AncestorType=UserControl},
+                              Converter={StaticResource SevColor}}"/>
+
+            <!-- Timestamp -->
+            <TextBlock Grid.Column="1"
+                       Text="{Binding DetectedAt,
+                              RelativeSource={RelativeSource AncestorType=UserControl},
+                              Converter={StaticResource RelTime}}"
+                       Style="{StaticResource TimestampStyle}"
+                       VerticalAlignment="Center"
+                       Margin="8,0,0,0"/>
+
+            <!-- Name + path -->
+            <StackPanel Grid.Column="2" Margin="12,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding ThreatName,
+                                  RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           Style="{StaticResource BodyStyle}"
+                           FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding FilePath,
+                                  RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           Style="{StaticResource HashStyle}"
+                           Margin="0,2,0,0"
+                           TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+
+            <!-- Detection type badge -->
+            <Border Grid.Column="3"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="3"
+                    Padding="6,3"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Left">
+                <TextBlock Text="{Binding DetectionType,
+                                  RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           Style="{StaticResource BadgeStyle}"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

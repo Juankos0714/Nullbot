@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Custom installer UI sequence for NullBot.
+  Based on WixUI_FeatureTree: Welcome -> License -> Features -> Browse -> Verify -> Progress -> Finish.
+
+  To use custom bitmaps:
+    UI\Assets\banner.png  — 493 x 58 px  (top banner on inner dialogs)
+    UI\Assets\dialog.png  — 493 x 312 px (welcome/finish background)
+  Both should use the dark theme (#0A0C0F background, #00D4FF accent).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Fragment>
+    <!--
+      WixUI_NullBot inherits the built-in WixUI_FeatureTree dialog set.
+      Override individual dialogs here when custom XAML-like UI branding is needed.
+      For now, the stock dialog set is used with custom bitmaps set via WixVariables.
+    -->
+    <ui:WixUI Id="WixUI_NullBot" InstallDirectory="INSTALLFOLDER">
+      <!--
+        Splash sequence:
+          WelcomeDlg -> LicenseAgreementDlg -> CustomizeDlg -> VerifyReadyDlg -> ProgressDlg -> ExitDlg
+      -->
+    </ui:WixUI>
+  </Fragment>
+
+</Wix>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+
+    <!--
+      The AMSI DLL is copied to INSTALLFOLDER and registered via the custom action
+      in Product.wxs (RegisterAmsi / UnregisterAmsi) rather than self-registration,
+      to give us explicit control over when regsvr32 runs.
+    -->
+    <ComponentGroup Id="AmsiComponents" Directory="INSTALLFOLDER">
+
+      <Component Id="CmpAmsiDll" Guid="C8D9E0F1-A2B3-4567-1234-567890000007">
+        <File Id="FileAmsiDll"
+              Source="$(var.BinDir)nullbot_amsi_provider.dll"
+              KeyPath="yes"/>
+      </Component>
+
+    </ComponentGroup>
+
+  </Fragment>
+</Wix>

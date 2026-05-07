@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+
+    <!-- Core binaries to Program Files\NullBot -->
+    <ComponentGroup Id="CoreComponents" Directory="INSTALLFOLDER">
+
+      <Component Id="CmpNullbotCli" Guid="B1C2D3E4-F5A6-7890-ABCD-EF1234567890">
+        <File Id="FileNullbotCli"
+              Source="$(var.BinDir)nullbot_cli.exe"
+              KeyPath="yes"/>
+      </Component>
+
+      <Component Id="CmpInstallSchedulerScript" Guid="C2D3E4F5-A6B7-8901-BCDE-F12345678901">
+        <File Id="FileInstallScheduler"
+              Source="..\..\scripts\install_scheduler.ps1"
+              KeyPath="yes"/>
+      </Component>
+
+    </ComponentGroup>
+
+    <!-- C:\ProgramData\NullBot directory tree (created, preserved on uninstall) -->
+    <ComponentGroup Id="DataDirComponents">
+
+      <Component Id="CmpDataRoot" Directory="DATAROOTDIR"
+                 Guid="D3E4F5A6-B7C8-9012-CDEF-012345678902">
+        <CreateFolder/>
+      </Component>
+
+      <Component Id="CmpSigDir" Directory="SIGSDIR"
+                 Guid="E4F5A6B7-C8D9-0123-DEF0-123456789003">
+        <CreateFolder/>
+      </Component>
+
+      <Component Id="CmpUpdaterDir" Directory="UPDATERDIR"
+                 Guid="F5A6B7C8-D9E0-1234-EF01-234567890004">
+        <CreateFolder/>
+      </Component>
+
+      <Component Id="CmpQuarDir" Directory="QUARDIR"
+                 Guid="A6B7C8D9-E0F1-2345-F012-345678900005">
+        <CreateFolder/>
+      </Component>
+
+      <Component Id="CmpLogsDir" Directory="LOGSDIR"
+                 Guid="B7C8D9E0-F1A2-3456-0123-456789000006">
+        <CreateFolder/>
+      </Component>
+
+    </ComponentGroup>
+
+  </Fragment>
+</Wix>

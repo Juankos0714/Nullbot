@@ -1,0 +1,151 @@
+<UserControl x:Class="NullBot.UI.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NullBot.UI.ViewModels"
+             xmlns:ctrl="clr-namespace:NullBot.UI.Controls"
+             xmlns:conv="clr-namespace:NullBot.UI.Converters"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:DashboardViewModel}"
+             Background="{StaticResource BackgroundBrush}">
+
+    <UserControl.Resources>
+        <conv:RelativeTimeConverter x:Key="RelTime"/>
+        <conv:SeverityToColorConverter x:Key="SevColor"/>
+    </UserControl.Resources>
+
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" Duration="0:0:0.15"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="32,24">
+
+            <!-- Header -->
+            <TextBlock Text="Dashboard" Style="{StaticResource HeadlineStyle}" Margin="0,0,0,24"/>
+
+            <!-- Hero: shield gauge + status -->
+            <Border Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="8"
+                    Padding="32,24" Margin="0,0,0,24">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ctrl:ShieldGauge Grid.Column="0"
+                                      Status="{Binding ShieldStatus}"
+                                      Margin="0,0,40,0"/>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SubheadStyle}"
+                                   Margin="0,0,0,8">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SubheadStyle}">
+                                    <Setter Property="Text" Value="System Protected"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShieldStatus}" Value="Warning">
+                                            <Setter Property="Text" Value="Threats Detected"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ShieldStatus}" Value="Danger">
+                                            <Setter Property="Text" Value="Active Threat — Immediate Action Required"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="NullBot is actively monitoring your system for botnet activity."
+                                   Style="{StaticResource BodyStyle}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"/>
+                        <Button Content="Refresh Status"
+                                Style="{StaticResource GhostButtonStyle}"
+                                Command="{Binding LoadDataCommand}"
+                                HorizontalAlignment="Left"
+                                Margin="0,16,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- KPI grid -->
+            <UniformGrid Columns="2" Margin="0,0,0,24">
+                <ctrl:KpiCard Title="SIGNATURES LOADED"
+                              Value="{Binding SignatureCount}"
+                              Subtitle="Updated from threat feeds"
+                              Margin="0,0,12,12"/>
+
+                <ctrl:KpiCard Title="LAST FEED UPDATE"
+                              Value="{Binding LastUpdateTime, Converter={StaticResource RelTime}}"
+                              Subtitle="Click to force update"
+                              Margin="0,0,0,12"
+                              Cursor="Hand">
+                    <ctrl:KpiCard.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding ForceUpdateCommand}"/>
+                    </ctrl:KpiCard.InputBindings>
+                </ctrl:KpiCard>
+
+                <ctrl:KpiCard Title="FILES IN QUARANTINE"
+                              Value="{Binding QuarantineCount}"
+                              Subtitle="AES-256 encrypted vault"
+                              Margin="0,0,12,0"/>
+
+                <ctrl:KpiCard Title="C2 ALERTS (24H)"
+                              Value="{Binding C2AlertsLast24h}"
+                              AccentColor="{StaticResource DangerBrush}"
+                              Subtitle="Command-and-control connections blocked"/>
+            </UniformGrid>
+
+            <!-- Recent detections -->
+            <TextBlock Text="RECENT DETECTIONS"
+                       Style="{StaticResource LabelStyle}"
+                       Margin="0,0,0,12"/>
+
+            <Border Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="6">
+                <ItemsControl ItemsSource="{Binding RecentDetections}">
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Style.Triggers>
+                                <Trigger Property="HasItems" Value="False">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate>
+                                                <TextBlock Text="No threats detected. Stay safe."
+                                                           Style="{StaticResource BodyStyle}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           HorizontalAlignment="Center"
+                                                           Margin="0,40"/>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ctrl:ThreatRow ThreatName="{Binding ThreatName}"
+                                            FilePath="{Binding FilePath}"
+                                            Severity="{Binding Severity}"
+                                            DetectionType="{Binding DetectionType}"
+                                            DetectedAt="{Binding DetectedAt}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

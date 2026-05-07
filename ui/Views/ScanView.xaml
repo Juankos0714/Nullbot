@@ -1,0 +1,193 @@
+<UserControl x:Class="NullBot.UI.Views.ScanView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NullBot.UI.ViewModels"
+             xmlns:ctrl="clr-namespace:NullBot.UI.Controls"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:ScanViewModel}"
+             Background="{StaticResource BackgroundBrush}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24">
+
+            <TextBlock Text="Scan" Style="{StaticResource HeadlineStyle}" Margin="0,0,0,24"/>
+
+            <!-- Mode selector -->
+            <Border Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="8"
+                    Padding="24,20" Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="SCAN MODE" Style="{StaticResource LabelStyle}" Margin="0,0,0,12"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <RadioButton Content="Quick Scan"
+                                     IsChecked="{Binding ScanMode,
+                                         Converter={x:Static vm:ScanModeConverter.QuickConverter}}"
+                                     Margin="0,0,16,0"
+                                     Foreground="{StaticResource TextPrimaryBrush}"
+                                     FontFamily="{StaticResource BodyFont}"/>
+                        <RadioButton Content="Full Scan"
+                                     IsChecked="{Binding ScanMode,
+                                         Converter={x:Static vm:ScanModeConverter.FullConverter}}"
+                                     Margin="0,0,16,0"
+                                     Foreground="{StaticResource TextPrimaryBrush}"
+                                     FontFamily="{StaticResource BodyFont}"/>
+                        <RadioButton Content="Custom Path"
+                                     IsChecked="{Binding ScanMode,
+                                         Converter={x:Static vm:ScanModeConverter.CustomConverter}}"
+                                     Foreground="{StaticResource TextPrimaryBrush}"
+                                     FontFamily="{StaticResource BodyFont}"/>
+                    </StackPanel>
+
+                    <!-- Custom path input (visible only in Custom mode) -->
+                    <StackPanel Visibility="{Binding ScanMode,
+                                    Converter={x:Static vm:ScanModeConverter.CustomVisibilityConverter}}"
+                                Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding CustomPath, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource DarkTextBoxStyle}"
+                                     Margin="0,0,8,0"/>
+                            <Button Grid.Column="1"
+                                    Content="Browse..."
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    Click="BrowseButton_Click"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <CheckBox Content="Auto-quarantine detected threats"
+                              IsChecked="{Binding AutoQuarantine}"
+                              Style="{StaticResource ToggleSwitchStyle}"
+                              Foreground="{StaticResource TextPrimaryBrush}"
+                              FontFamily="{StaticResource BodyFont}"
+                              FontSize="13"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Start / Cancel button -->
+            <Grid HorizontalAlignment="Center" Margin="0,0,0,20">
+                <Button Content="Start Scan"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding StartScanCommand}"
+                        MinWidth="200" Padding="32,14">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsScanning}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="Cancel"
+                        Style="{StaticResource DangerButtonStyle}"
+                        Command="{Binding CancelStartScanCommand}"
+                        MinWidth="200" Padding="32,14">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource DangerButtonStyle}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsScanning}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+
+            <!-- Progress (visible during scan) -->
+            <Border Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="8"
+                    Padding="24,20" Margin="0,0,0,20">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsScanning}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <Grid Margin="0,0,0,8">
+                        <TextBlock Text="Scanning..."
+                                   Style="{StaticResource BodyStyle}"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock HorizontalAlignment="Right"
+                                   Style="{StaticResource MonoStyle}"
+                                   Foreground="{StaticResource TextSecondaryBrush}">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0}/{1} files  ({2:F0} f/s)">
+                                    <Binding Path="FilesProcessed"/>
+                                    <Binding Path="FilesTotal"/>
+                                    <Binding Path="ScanSpeed"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </Grid>
+
+                    <ProgressBar Value="{Binding ProgressPercent}"
+                                 Maximum="100"
+                                 Style="{StaticResource ScanProgressStyle}"
+                                 Margin="0,0,0,8"/>
+
+                    <TextBlock Text="{Binding CurrentFile}"
+                               Style="{StaticResource HashStyle}"
+                               TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Threats found -->
+            <Border Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="8">
+                <StackPanel>
+                    <TextBlock Text="THREATS FOUND"
+                               Style="{StaticResource LabelStyle}"
+                               Margin="16,16,16,12"/>
+                    <ItemsControl ItemsSource="{Binding DetectedThreats}">
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Style.Triggers>
+                                    <Trigger Property="HasItems" Value="False">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate>
+                                                    <TextBlock Text="No threats detected."
+                                                               Style="{StaticResource BodyStyle}"
+                                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                                               HorizontalAlignment="Center"
+                                                               Margin="0,24"/>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ctrl:ThreatRow ThreatName="{Binding ThreatName}"
+                                                FilePath="{Binding FilePath}"
+                                                Severity="{Binding Severity}"
+                                                DetectionType="{Binding DetectionType}"
+                                                DetectedAt="{Binding DetectedAt}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

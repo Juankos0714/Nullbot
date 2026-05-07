@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  WiX Toolset v4 project.
+  Prerequisites:
+    dotnet tool install --global wix
+    wix extension add WixToolset.UI.wixext/4.0.5
+    wix extension add WixToolset.Util.wixext/4.0.5
+  Build:
+    msbuild NullBot.Installer.wixproj -p:Configuration=Release
+-->
+<Project Sdk="WiX/4.0.5">
+
+  <PropertyGroup>
+    <OutputName>NullBot-0.1.0-x64</OutputName>
+    <OutputType>Package</OutputType>
+    <Platform>x64</Platform>
+    <Configurations>Debug;Release</Configurations>
+    <Platforms>x64</Platforms>
+    <!-- Source root relative to this project file (one level up = repo root) -->
+    <SrcRoot>..\</SrcRoot>
+    <BinDir>$(SrcRoot)build\bin\</BinDir>
+    <UiDir>$(SrcRoot)ui\bin\Release\net8.0-windows\</UiDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext"   Version="4.0.5"/>
+    <PackageReference Include="WixToolset.Util.wixext" Version="4.0.5"/>
+  </ItemGroup>
+
+</Project>

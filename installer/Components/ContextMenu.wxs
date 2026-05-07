@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+
+    <!--
+      Adds "Scan with NullBot" to the Windows shell context menu for all file types.
+      Written to HKCR\*\shell — requires elevated installation (which MSI handles).
+    -->
+    <ComponentGroup Id="ContextMenuComponents">
+
+      <Component Id="CmpContextMenu"
+                 Directory="INSTALLFOLDER"
+                 Guid="D5E6F7A8-B9C0-1234-8901-000000000014">
+
+        <!-- HKCR\*\shell\NullBot -->
+        <RegistryValue Root="HKCR"
+                       Key="*\shell\NullBot"
+                       Name=""
+                       Type="string"
+                       Value="Scan with NullBot"
+                       KeyPath="yes"/>
+
+        <RegistryValue Root="HKCR"
+                       Key="*\shell\NullBot"
+                       Name="Icon"
+                       Type="string"
+                       Value="[INSTALLFOLDER]NullBot.exe,0"/>
+
+        <!-- HKCR\*\shell\NullBot\command -->
+        <RegistryValue Root="HKCR"
+                       Key="*\shell\NullBot\command"
+                       Name=""
+                       Type="string"
+                       Value="&quot;[INSTALLFOLDER]nullbot_cli.exe&quot; --scan --path &quot;%1&quot;"/>
+
+      </Component>
+
+    </ComponentGroup>
+
+  </Fragment>
+</Wix>

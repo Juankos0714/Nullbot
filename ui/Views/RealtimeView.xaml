@@ -1,0 +1,162 @@
+<UserControl x:Class="NullBot.UI.Views.RealtimeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NullBot.UI.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:RealtimeViewModel}"
+             Background="{StaticResource BackgroundBrush}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24">
+            <TextBlock Text="Realtime Protection" Style="{StaticResource HeadlineStyle}" Margin="0,0,0,24"/>
+
+            <!-- Master on/off switch -->
+            <Border Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="8"
+                    Padding="24,20" Margin="0,0,0,20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="REALTIME PROTECTION" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
+                        <TextBlock Style="{StaticResource BodyStyle}"
+                                   Foreground="{StaticResource TextSecondaryBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource BodyStyle}">
+                                    <Setter Property="Text" Value="Protection is stopped."/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsWatching}" Value="True">
+                                            <Setter Property="Text" Value="Monitoring filesystem, network, and AMSI events."/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Start"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding StartWatchingCommand}"
+                                Margin="0,0,8,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsWatching}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="Stop"
+                                Style="{StaticResource DangerButtonStyle}"
+                                Command="{Binding StopWatchingCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource DangerButtonStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsWatching}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Three component cards -->
+            <UniformGrid Columns="3" Margin="0,0,0,20">
+                <!-- Filesystem watcher -->
+                <Border Background="{StaticResource PanelBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="8"
+                        Padding="20,16" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="FILESYSTEM WATCHER" Style="{StaticResource LabelStyle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding FilesystemWatcherPaths}"
+                                   Style="{StaticResource MonoStyle}"
+                                   TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <TextBlock Style="{StaticResource CaptionStyle}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionStyle}">
+                                    <Setter Property="Text" Value="Stopped"/>
+                                    <Setter Property="Foreground" Value="{StaticResource TextDisabledBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsWatching}" Value="True">
+                                            <Setter Property="Text" Value="Active"/>
+                                            <Setter Property="Foreground" Value="{StaticResource SafeBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Network monitor -->
+                <Border Background="{StaticResource PanelBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="8"
+                        Padding="20,16" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="NETWORK MONITOR" Style="{StaticResource LabelStyle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding ConnectionsInspected, StringFormat={}{0} connections inspected}"
+                                   Style="{StaticResource MonoStyle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Polling every 5s"
+                                   Style="{StaticResource CaptionStyle}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- AMSI provider -->
+                <Border Background="{StaticResource PanelBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="8"
+                        Padding="20,16">
+                    <StackPanel>
+                        <TextBlock Text="AMSI PROVIDER" Style="{StaticResource LabelStyle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding ScriptsScanned, StringFormat={}{0} scripts scanned}"
+                                   Style="{StaticResource MonoStyle}" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Register (admin)"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    Command="{Binding RegisterAmsiCommand}"
+                                    FontSize="11" Padding="8,4"
+                                    Margin="0,0,8,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Live event stream -->
+            <TextBlock Text="LIVE EVENT STREAM" Style="{StaticResource LabelStyle}" Margin="0,0,0,12"/>
+            <Border Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="8"
+                    Height="300">
+                <ScrollViewer x:Name="EventScroller"
+                              VerticalScrollBarVisibility="Auto"
+                              Padding="16">
+                    <ItemsControl ItemsSource="{Binding LiveEvents}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           Style="{StaticResource MonoStyle}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="0,1"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
