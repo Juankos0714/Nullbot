@@ -11,13 +11,13 @@
 
       <Component Id="CmpUpdateFeedsScript" Guid="B3C4D5E6-F7A8-9012-6789-000000000012">
         <File Id="FileUpdateFeeds"
-              Source="..\..\signatures\updater\update_feeds.py"
+              Source="..\signatures\updater\update_feeds.py"
               KeyPath="yes"/>
       </Component>
 
       <Component Id="CmpRequirementsTxt" Guid="C4D5E6F7-A8B9-0123-7890-000000000013">
         <File Id="FileRequirements"
-              Source="..\..\signatures\updater\requirements.txt"
+              Source="..\signatures\updater\requirements.txt"
               KeyPath="yes"/>
       </Component>
 

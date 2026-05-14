@@ -11,7 +11,7 @@
 
       <Component Id="CmpAmsiDll" Guid="C8D9E0F1-A2B3-4567-1234-567890000007">
         <File Id="FileAmsiDll"
-              Source="$(var.BinDir)nullbot_amsi_provider.dll"
+              Source="..\build\bin\Release\nullbot_amsi_provider.dll"
               KeyPath="yes"/>
       </Component>
 

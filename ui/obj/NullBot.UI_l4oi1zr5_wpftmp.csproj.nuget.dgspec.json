@@ -1,0 +1,84 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\jucar\\OneDrive\\Documentos\\SoftwareDevelopment\\Nullbot\\nullbot_scaffolding\\nullbot\\ui\\NullBot.UI.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\jucar\\OneDrive\\Documentos\\SoftwareDevelopment\\Nullbot\\nullbot_scaffolding\\nullbot\\ui\\NullBot.UI.csproj": {
+      "version": "0.1.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\jucar\\OneDrive\\Documentos\\SoftwareDevelopment\\Nullbot\\nullbot_scaffolding\\nullbot\\ui\\NullBot.UI.csproj",
+        "projectName": "NullBot",
+        "projectPath": "C:\\Users\\jucar\\OneDrive\\Documentos\\SoftwareDevelopment\\Nullbot\\nullbot_scaffolding\\nullbot\\ui\\NullBot.UI.csproj",
+        "packagesPath": "C:\\Users\\jucar\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\jucar\\OneDrive\\Documentos\\SoftwareDevelopment\\Nullbot\\nullbot_scaffolding\\nullbot\\ui\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\jucar\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0-windows"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0-windows7.0": {
+            "targetAlias": "net8.0-windows",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "allWarningsAsErrors": true,
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0-windows7.0": {
+          "targetAlias": "net8.0-windows",
+          "dependencies": {
+            "CommunityToolkit.Mvvm": {
+              "target": "Package",
+              "version": "[8.3.2, )"
+            },
+            "Microsoft.Data.Sqlite": {
+              "target": "Package",
+              "version": "[8.0.10, )"
+            },
+            "Microsoft.Extensions.Hosting": {
+              "target": "Package",
+              "version": "[8.0.1, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            },
+            "Microsoft.WindowsDesktop.App.WPF": {
+              "privateAssets": "none"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.420/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

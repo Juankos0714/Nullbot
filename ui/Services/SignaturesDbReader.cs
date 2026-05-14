@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +21,7 @@ public sealed class SignaturesDbReader : ISignaturesDbReader
             await using var conn = new SqliteConnection($"Data Source={DbPath};Mode=ReadOnly");
             await conn.OpenAsync(ct);
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM signatures";
+            cmd.CommandText = "SELECT COUNT(*) FROM hashes";
             var result = await cmd.ExecuteScalarAsync(ct);
             return result is long count ? (int)count : 0;
         }
@@ -40,7 +41,7 @@ public sealed class SignaturesDbReader : ISignaturesDbReader
             await using var conn = new SqliteConnection($"Data Source={DbPath};Mode=ReadOnly");
             await conn.OpenAsync(ct);
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT MAX(updated_at) FROM signatures";
+            cmd.CommandText = "SELECT MAX(last_update) FROM feed_metadata";
             var result = await cmd.ExecuteScalarAsync(ct);
             if (result is string iso && DateTime.TryParse(iso, out var dt))
                 return dt;

@@ -50,7 +50,6 @@
                    FontWeight="Bold"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
-                   Margin="0,54,0,0"
-                   CharacterSpacing="200"/>
+                   Margin="0,54,0,0"/>
     </Grid>
 </UserControl>

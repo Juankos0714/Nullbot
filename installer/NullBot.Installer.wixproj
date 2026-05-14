@@ -2,7 +2,7 @@
 <!--
   WiX Toolset v4 project.
   Prerequisites:
-    dotnet tool install --global wix
+    dotnet tool install -g wix -v 4.0.5
     wix extension add WixToolset.UI.wixext/4.0.5
     wix extension add WixToolset.Util.wixext/4.0.5
   Build:

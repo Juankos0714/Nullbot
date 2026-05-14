@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <ComponentGroup Id="UiAllFiles" Directory="INSTALLFOLDER">
+      <Component Id="Cmp_CommunityToolkit_Mvvm_dll" Guid="F0A1B2C3-D4E5-0001-ABCD-0123456789AB">
+        <File Id="File_CommunityToolkit_Mvvm_dll" Source="ui_publish\CommunityToolkit.Mvvm.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_e_sqlite3_dll" Guid="F0A1B2C3-D4E5-0002-ABCD-0123456789AB">
+        <File Id="File_e_sqlite3_dll" Source="ui_publish\e_sqlite3.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Data_Sqlite_dll" Guid="F0A1B2C3-D4E5-0003-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Data_Sqlite_dll" Source="ui_publish\Microsoft.Data.Sqlite.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Configuration_Abstractions_dll" Guid="F0A1B2C3-D4E5-0004-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Configuration_Abstractions_dll" Source="ui_publish\Microsoft.Extensions.Configuration.Abstractions.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Configuration_Binder_dll" Guid="F0A1B2C3-D4E5-0005-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Configuration_Binder_dll" Source="ui_publish\Microsoft.Extensions.Configuration.Binder.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Configuration_CommandLine_dll" Guid="F0A1B2C3-D4E5-0006-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Configuration_CommandLine_dll" Source="ui_publish\Microsoft.Extensions.Configuration.CommandLine.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Configuration_dll" Guid="F0A1B2C3-D4E5-0007-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Configuration_dll" Source="ui_publish\Microsoft.Extensions.Configuration.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Configuration_EnvironmentVariables_dll" Guid="F0A1B2C3-D4E5-0008-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Configuration_EnvironmentVariables_dll" Source="ui_publish\Microsoft.Extensions.Configuration.EnvironmentVariables.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Configuration_FileExtensions_dll" Guid="F0A1B2C3-D4E5-0009-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Configuration_FileExtensions_dll" Source="ui_publish\Microsoft.Extensions.Configuration.FileExtensions.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Configuration_Json_dll" Guid="F0A1B2C3-D4E5-0010-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Configuration_Json_dll" Source="ui_publish\Microsoft.Extensions.Configuration.Json.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Configuration_UserSecrets_dll" Guid="F0A1B2C3-D4E5-0011-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Configuration_UserSecrets_dll" Source="ui_publish\Microsoft.Extensions.Configuration.UserSecrets.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_DependencyInjection_Abstractions_dll" Guid="F0A1B2C3-D4E5-0012-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_DependencyInjection_Abstractions_dll" Source="ui_publish\Microsoft.Extensions.DependencyInjection.Abstractions.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_DependencyInjection_dll" Guid="F0A1B2C3-D4E5-0013-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_DependencyInjection_dll" Source="ui_publish\Microsoft.Extensions.DependencyInjection.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Diagnostics_Abstractions_dll" Guid="F0A1B2C3-D4E5-0014-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Diagnostics_Abstractions_dll" Source="ui_publish\Microsoft.Extensions.Diagnostics.Abstractions.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Diagnostics_dll" Guid="F0A1B2C3-D4E5-0015-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Diagnostics_dll" Source="ui_publish\Microsoft.Extensions.Diagnostics.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_FileProviders_Abstractions_dll" Guid="F0A1B2C3-D4E5-0016-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_FileProviders_Abstractions_dll" Source="ui_publish\Microsoft.Extensions.FileProviders.Abstractions.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_FileProviders_Physical_dll" Guid="F0A1B2C3-D4E5-0017-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_FileProviders_Physical_dll" Source="ui_publish\Microsoft.Extensions.FileProviders.Physical.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_FileSystemGlobbing_dll" Guid="F0A1B2C3-D4E5-0018-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_FileSystemGlobbing_dll" Source="ui_publish\Microsoft.Extensions.FileSystemGlobbing.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Hosting_Abstractions_dll" Guid="F0A1B2C3-D4E5-0019-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Hosting_Abstractions_dll" Source="ui_publish\Microsoft.Extensions.Hosting.Abstractions.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Hosting_dll" Guid="F0A1B2C3-D4E5-0020-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Hosting_dll" Source="ui_publish\Microsoft.Extensions.Hosting.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Logging_Abstractions_dll" Guid="F0A1B2C3-D4E5-0021-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Logging_Abstractions_dll" Source="ui_publish\Microsoft.Extensions.Logging.Abstractions.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Logging_Configuration_dll" Guid="F0A1B2C3-D4E5-0022-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Logging_Configuration_dll" Source="ui_publish\Microsoft.Extensions.Logging.Configuration.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Logging_Console_dll" Guid="F0A1B2C3-D4E5-0023-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Logging_Console_dll" Source="ui_publish\Microsoft.Extensions.Logging.Console.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Logging_Debug_dll" Guid="F0A1B2C3-D4E5-0024-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Logging_Debug_dll" Source="ui_publish\Microsoft.Extensions.Logging.Debug.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Logging_dll" Guid="F0A1B2C3-D4E5-0025-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Logging_dll" Source="ui_publish\Microsoft.Extensions.Logging.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Logging_EventLog_dll" Guid="F0A1B2C3-D4E5-0026-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Logging_EventLog_dll" Source="ui_publish\Microsoft.Extensions.Logging.EventLog.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Logging_EventSource_dll" Guid="F0A1B2C3-D4E5-0027-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Logging_EventSource_dll" Source="ui_publish\Microsoft.Extensions.Logging.EventSource.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Options_ConfigurationExtensions_dll" Guid="F0A1B2C3-D4E5-0028-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Options_ConfigurationExtensions_dll" Source="ui_publish\Microsoft.Extensions.Options.ConfigurationExtensions.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Options_dll" Guid="F0A1B2C3-D4E5-0029-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Options_dll" Source="ui_publish\Microsoft.Extensions.Options.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_Microsoft_Extensions_Primitives_dll" Guid="F0A1B2C3-D4E5-0030-ABCD-0123456789AB">
+        <File Id="File_Microsoft_Extensions_Primitives_dll" Source="ui_publish\Microsoft.Extensions.Primitives.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_NullBot_deps_json" Guid="F0A1B2C3-D4E5-0031-ABCD-0123456789AB">
+        <File Id="File_NullBot_deps_json" Source="ui_publish\NullBot.deps.json" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_NullBot_dll" Guid="F0A1B2C3-D4E5-0032-ABCD-0123456789AB">
+        <File Id="File_NullBot_dll" Source="ui_publish\NullBot.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_NullBot_pdb" Guid="F0A1B2C3-D4E5-0034-ABCD-0123456789AB">
+        <File Id="File_NullBot_pdb" Source="ui_publish\NullBot.pdb" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_NullBot_runtimeconfig_json" Guid="F0A1B2C3-D4E5-0035-ABCD-0123456789AB">
+        <File Id="File_NullBot_runtimeconfig_json" Source="ui_publish\NullBot.runtimeconfig.json" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_SQLitePCLRaw_batteries_v2_dll" Guid="F0A1B2C3-D4E5-0036-ABCD-0123456789AB">
+        <File Id="File_SQLitePCLRaw_batteries_v2_dll" Source="ui_publish\SQLitePCLRaw.batteries_v2.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_SQLitePCLRaw_core_dll" Guid="F0A1B2C3-D4E5-0037-ABCD-0123456789AB">
+        <File Id="File_SQLitePCLRaw_core_dll" Source="ui_publish\SQLitePCLRaw.core.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_SQLitePCLRaw_provider_e_sqlite3_dll" Guid="F0A1B2C3-D4E5-0038-ABCD-0123456789AB">
+        <File Id="File_SQLitePCLRaw_provider_e_sqlite3_dll" Source="ui_publish\SQLitePCLRaw.provider.e_sqlite3.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Cmp_System_Diagnostics_EventLog_dll" Guid="F0A1B2C3-D4E5-0039-ABCD-0123456789AB">
+        <File Id="File_System_Diagnostics_EventLog_dll" Source="ui_publish\System.Diagnostics.EventLog.dll" KeyPath="yes"/>
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
+

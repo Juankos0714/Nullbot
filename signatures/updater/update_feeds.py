@@ -105,7 +105,7 @@ def init_db(db_path: Path) -> sqlite3.Connection:
         CREATE TABLE IF NOT EXISTS hashes (
             sha256         TEXT PRIMARY KEY,
             md5            TEXT,
-            threat_name    TEXT NOT NULL,
+            name           TEXT NOT NULL,
             malware_family TEXT,
             first_seen     TEXT,
             source         TEXT
@@ -184,7 +184,7 @@ def fetch_malwarebazaar(conn: sqlite3.Connection, dry_run: bool = False) -> int:
             else:
                 c.execute("""
                     INSERT OR IGNORE INTO hashes
-                        (sha256, md5, threat_name, malware_family, first_seen, source)
+                        (sha256, md5, name, malware_family, first_seen, source)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (sha256, md5, name, family, sample.get("first_seen"), "MalwareBazaar"))
                 count += c.rowcount
@@ -395,7 +395,7 @@ def fetch_otx_pulses(conn: sqlite3.Connection, dry_run: bool = False) -> int:
                     else:
                         c.execute("""
                             INSERT OR IGNORE INTO hashes
-                                (sha256, md5, threat_name, malware_family, first_seen, source)
+                                (sha256, md5, name, malware_family, first_seen, source)
                             VALUES (?, ?, ?, ?, ?, ?)
                         """, (value, "", f"OTX.{pulse_name}", "", today, "OTX"))
                         count += c.rowcount

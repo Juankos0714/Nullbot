@@ -7,20 +7,7 @@
       <!-- Main WPF executable -->
       <Component Id="CmpNullBotExe" Guid="D9E0F1A2-B3C4-5678-2345-678900000008">
         <File Id="FileNullBotExe"
-              Source="$(var.UiDir)NullBot.exe"
-              KeyPath="yes"/>
-      </Component>
-
-      <!-- .runtimeconfig.json and deps.json required by .NET 8 -->
-      <Component Id="CmpRuntimeConfig" Guid="E0F1A2B3-C4D5-6789-3456-789000000009">
-        <File Id="FileRuntimeConfig"
-              Source="$(var.UiDir)NullBot.runtimeconfig.json"
-              KeyPath="yes"/>
-      </Component>
-
-      <Component Id="CmpDepsJson" Guid="F1A2B3C4-D5E6-7890-4567-890000000010">
-        <File Id="FileDepsJson"
-              Source="$(var.UiDir)NullBot.deps.json"
+              Source="ui_publish\NullBot.exe"
               KeyPath="yes"/>
       </Component>
 

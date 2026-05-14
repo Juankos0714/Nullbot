@@ -73,7 +73,6 @@
             <!-- Start / Cancel button -->
             <Grid HorizontalAlignment="Center" Margin="0,0,0,20">
                 <Button Content="Start Scan"
-                        Style="{StaticResource PrimaryButtonStyle}"
                         Command="{Binding StartScanCommand}"
                         MinWidth="200" Padding="32,14">
                     <Button.Style>
@@ -87,7 +86,6 @@
                     </Button.Style>
                 </Button>
                 <Button Content="Cancel"
-                        Style="{StaticResource DangerButtonStyle}"
                         Command="{Binding CancelStartScanCommand}"
                         MinWidth="200" Padding="32,14">
                     <Button.Style>

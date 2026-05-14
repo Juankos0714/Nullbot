@@ -41,7 +41,7 @@
 
     <!-- Core (required) -->
     <Feature Id="CoreFeature" Title="Core Engine" Description="Scanner, heuristics, and quarantine engine."
-             Level="1" Absent="disallow" AllowAdvertise="no">
+             Level="1" AllowAdvertise="no">
       <ComponentGroupRef Id="CoreComponents"/>
       <ComponentGroupRef Id="DataDirComponents"/>
       <ComponentGroupRef Id="SignaturesComponents"/>
@@ -51,6 +51,7 @@
     <Feature Id="UiFeature" Title="Desktop UI" Description="WPF dashboard application."
              Level="1">
       <ComponentGroupRef Id="UiComponents"/>
+      <ComponentGroupRef Id="UiAllFiles"/>
       <ComponentGroupRef Id="ShortcutComponents"/>
     </Feature>
 
@@ -119,33 +120,23 @@
     <!-- ═══════════════════ Sequences ═══════════════════ -->
     <InstallExecuteSequence>
       <!-- Register AMSI after files are installed, only on fresh install/upgrade -->
-      <Custom Action="RegisterAmsi" After="InstallFiles">
-        <![CDATA[NOT REMOVE AND (REINSTALL OR NOT Installed) AND &AmsiFeature=3]]>
-      </Custom>
+      <Custom Action="RegisterAmsi" After="InstallFiles"
+              Condition="NOT REMOVE AND (REINSTALL OR NOT Installed) AND &amp;AmsiFeature=3"/>
 
       <!-- Install scheduler after files land, only if feature selected -->
-      <Custom Action="InstallScheduler" After="RegisterAmsi">
-        <![CDATA[NOT REMOVE AND (REINSTALL OR NOT Installed) AND &UpdaterFeature=3]]>
-      </Custom>
+      <Custom Action="InstallScheduler" After="RegisterAmsi"
+              Condition="NOT REMOVE AND (REINSTALL OR NOT Installed) AND &amp;UpdaterFeature=3"/>
 
       <!-- On uninstall: kill processes, unregister AMSI, remove task -->
-      <Custom Action="KillNullBot" Before="RemoveFiles">
-        <![CDATA[REMOVE="ALL"]]>
-      </Custom>
-      <Custom Action="UnregisterAmsi" After="KillNullBot">
-        <![CDATA[REMOVE="ALL"]]>
-      </Custom>
-      <Custom Action="RemoveScheduler" After="UnregisterAmsi">
-        <![CDATA[REMOVE="ALL"]]>
-      </Custom>
+      <Custom Action="KillNullBot"      Before="RemoveFiles"    Condition="REMOVE=&quot;ALL&quot;"/>
+      <Custom Action="UnregisterAmsi"   After="KillNullBot"     Condition="REMOVE=&quot;ALL&quot;"/>
+      <Custom Action="RemoveScheduler"  After="UnregisterAmsi"  Condition="REMOVE=&quot;ALL&quot;"/>
     </InstallExecuteSequence>
 
     <!-- ═══════════════════ UI ═══════════════════ -->
-    <ui:WixUI Id="WixUI_NullBot"/>
+    <ui:WixUI Id="WixUI_FeatureTree" InstallDirectory="INSTALLFOLDER"/>
 
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf"/>
-    <WixVariable Id="WixUIBannerBmp"  Value="UI\Assets\banner.png"/>
-    <WixVariable Id="WixUIDialogBmp"  Value="UI\Assets\dialog.png"/>
 
     <!-- Finish actions -->
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch NullBot now"/>

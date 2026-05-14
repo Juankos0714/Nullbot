@@ -15,7 +15,6 @@
         <!-- HKCR\*\shell\NullBot -->
         <RegistryValue Root="HKCR"
                        Key="*\shell\NullBot"
-                       Name=""
                        Type="string"
                        Value="Scan with NullBot"
                        KeyPath="yes"/>
@@ -29,7 +28,6 @@
         <!-- HKCR\*\shell\NullBot\command -->
         <RegistryValue Root="HKCR"
                        Key="*\shell\NullBot\command"
-                       Name=""
                        Type="string"
                        Value="&quot;[INSTALLFOLDER]nullbot_cli.exe&quot; --scan --path &quot;%1&quot;"/>
 

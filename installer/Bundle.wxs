@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  WiX Burn bundle — wraps the NullBot MSI in a single .exe bootstrapper.
+  Requires .NET 8 Desktop Runtime to be installed separately if not present.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+
+  <Bundle Name="NullBot"
+          Version="0.1.0"
+          Manufacturer="NullBot Contributors"
+          UpgradeCode="A9B8C7D6-E5F4-4321-8765-0987654321BB">
+
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+        Theme="hyperlinkLicense"
+        LicenseUrl="https://github.com/Juankos0714/nullbot/blob/main/LICENSE"
+        SuppressOptionsUI="yes"/>
+    </BootstrapperApplication>
+
+    <Chain>
+      <!-- NullBot MSI -->
+      <MsiPackage SourceFile="bin\Release\NullBot-0.1.0-x64.msi"
+                  Vital="yes"/>
+    </Chain>
+
+  </Bundle>
+
+</Wix>

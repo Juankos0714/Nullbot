@@ -72,6 +72,6 @@ public partial class SettingsViewModel : ObservableObject
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         using var key = Registry.CurrentUser.OpenSubKey(RunKey);
-        _runAtStartup = key?.GetValue(AppName) is not null;
+        RunAtStartup = key?.GetValue(AppName) is not null;
     }
 }

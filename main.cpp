@@ -13,10 +13,13 @@
  */
 
 #include <windows.h>
+#include <io.h>
+#include <fcntl.h>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <algorithm>
 
 #include "core/scanner/scanner.h"
 #include "core/quarantine/quarantine.h"
@@ -33,9 +36,22 @@ static const std::wstring DATA_DIR   = L"C:\\ProgramData\\NullBot";
 static const std::wstring QUARANTINE = DATA_DIR + L"\\quarantine";
 static const std::string  SIG_DB     = "C:\\ProgramData\\NullBot\\signatures";
 
+// True when stdout is a pipe (running from UI); false when interactive console.
+static bool g_piped = false;
+
 // ─── Console helpers ──────────────────────────────────────────────────────────
 
+// Map detection_type string to a severity label understood by the UI parser.
+static std::wstring MapSeverity(const std::string& detection_type) {
+    std::string upper = detection_type;
+    std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+    if (upper == "HEURISTIC") return L"MEDIUM";
+    if (upper == "C2" || upper == "DGA" || upper == "BEHAVIORAL") return L"HIGH";
+    return L"CRITICAL";
+}
+
 void PrintBanner() {
+    if (g_piped) return;
     SetConsoleOutputCP(CP_UTF8);
     std::wcout << L"\n";
     std::wcout << L"  ███╗   ██╗██╗   ██╗██╗     ██╗     ██████╗  ██████╗ ████████╗\n";
@@ -48,6 +64,7 @@ void PrintBanner() {
 }
 
 void PrintHelp() {
+    if (g_piped) return;
     std::wcout <<
         L"Usage:\n"
         L"  nullbot_cli.exe --scan --path <dir>   Scan a directory\n"
@@ -140,45 +157,62 @@ int CmdScan(const std::vector<std::wstring>& args) {
     auto start_time = GetTickCount64();
 
     for (const auto& target : scan_targets) {
-        std::wcout << L"  Scanning: " << target << L"\n";
+        if (!g_piped) std::wcout << L"  Scanning: " << target << L"\n";
 
         auto results = engine.ScanDirectory(
             target, opts,
             [&](const std::wstring& file, size_t scanned, size_t total) {
-                if (verbose) {
+                if (g_piped) {
+                    std::wcout << L"PROGRESS: " << scanned << L"/" << total << L"\n";
+                    if (verbose) std::wcout << L"FILE: " << file << L"\n";
+                    std::wcout.flush();
+                } else if (verbose) {
                     std::wcout << L"  [" << scanned << L"/" << total << L"] " << file << L"\r";
                 } else {
                     std::wcout << L"  Progress: " << scanned << L"/" << total << L"\r";
                 }
             },
             [&](const scanner::ScanResult& r) {
-                std::wcout << L"\n";
-                PrintThreat(r);
                 total_threats++;
+
+                if (g_piped) {
+                    auto wname = std::wstring(r.threat_name.begin(), r.threat_name.end());
+                    auto wtype = std::wstring(r.detection_type.begin(), r.detection_type.end());
+                    auto whash = std::wstring(r.sha256.begin(), r.sha256.end());
+                    std::wcout << L"THREAT: " << MapSeverity(r.detection_type)
+                               << L"|" << wname
+                               << L"|" << r.file_path
+                               << L"|" << wtype
+                               << L"|" << whash << L"\n";
+                    std::wcout.flush();
+                } else {
+                    std::wcout << L"\n";
+                    PrintThreat(r);
+                }
 
                 if (auto_quarantine) {
                     qm.Quarantine(r.file_path, r.threat_name, r.detection_type, r.sha256);
-                    std::wcout << L"    → Quarantined\n";
+                    if (!g_piped) std::wcout << L"    → Quarantined\n";
                 }
             }
         );
     }
 
     ULONGLONG elapsed = (GetTickCount64() - start_time) / 1000;
-    std::wcout << L"\n\n  ──────────────────────────────────\n";
-    std::wcout << L"  Scan complete in " << elapsed << L"s\n";
-
-    if (total_threats == 0) {
-        SetConsoleColor(FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-        std::wcout << L"  ✓ No threats found\n";
-    } else {
-        SetConsoleColor(FOREGROUND_RED | FOREGROUND_INTENSITY);
-        std::wcout << L"  ✗ " << total_threats << L" threat(s) detected\n";
-        if (!auto_quarantine) {
-            std::wcout << L"    Run with --auto-quarantine to remove them\n";
+    if (!g_piped) {
+        std::wcout << L"\n\n  ──────────────────────────────────\n";
+        std::wcout << L"  Scan complete in " << elapsed << L"s\n";
+        if (total_threats == 0) {
+            SetConsoleColor(FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+            std::wcout << L"  No threats found\n";
+        } else {
+            SetConsoleColor(FOREGROUND_RED | FOREGROUND_INTENSITY);
+            std::wcout << L"  " << total_threats << L" threat(s) detected\n";
+            if (!auto_quarantine)
+                std::wcout << L"    Run with --auto-quarantine to remove them\n";
         }
+        SetConsoleColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
     }
-    SetConsoleColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 
     return total_threats > 0 ? 2 : 0;
 }
@@ -396,6 +430,15 @@ int CmdQuarantine(const std::vector<std::wstring>& args) {
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 int wmain(int argc, wchar_t* argv[]) {
+    // Detect whether stdout is a pipe (UI mode) or an interactive console.
+    g_piped = !_isatty(_fileno(stdout));
+    if (g_piped) {
+        // Put stdout in UTF-8 text mode so wcout writes UTF-8 bytes to the pipe.
+        _setmode(_fileno(stdout), _O_U8TEXT);
+    } else {
+        SetConsoleOutputCP(CP_UTF8);
+    }
+
     PrintBanner();
 
     if (argc < 2) {

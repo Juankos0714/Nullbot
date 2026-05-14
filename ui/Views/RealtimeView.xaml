@@ -24,8 +24,7 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="REALTIME PROTECTION" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
-                        <TextBlock Style="{StaticResource BodyStyle}"
-                                   Foreground="{StaticResource TextSecondaryBrush}">
+                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource BodyStyle}">
                                     <Setter Property="Text" Value="Protection is stopped."/>
@@ -40,7 +39,6 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Content="Start"
-                                Style="{StaticResource PrimaryButtonStyle}"
                                 Command="{Binding StartWatchingCommand}"
                                 Margin="0,0,8,0">
                             <Button.Style>
@@ -54,7 +52,6 @@
                             </Button.Style>
                         </Button>
                         <Button Content="Stop"
-                                Style="{StaticResource DangerButtonStyle}"
                                 Command="{Binding StopWatchingCommand}">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource DangerButtonStyle}">
@@ -83,7 +80,7 @@
                         <TextBlock Text="{Binding FilesystemWatcherPaths}"
                                    Style="{StaticResource MonoStyle}"
                                    TextWrapping="Wrap" Margin="0,0,0,8"/>
-                        <TextBlock Style="{StaticResource CaptionStyle}">
+                        <TextBlock>
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionStyle}">
                                     <Setter Property="Text" Value="Stopped"/>

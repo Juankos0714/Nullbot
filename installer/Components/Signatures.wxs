@@ -10,7 +10,7 @@
 
       <Component Id="CmpYaraRules" Guid="E6F7A8B9-C0D1-2345-9012-000000000015">
         <File Id="FileYaraRules"
-              Source="..\..\signatures\rules\botnet_agents.yar"
+              Source="..\signatures\rules\botnet_agents.yar"
               KeyPath="yes"/>
       </Component>
 
